@@ -23,7 +23,6 @@
           <span id="timeStat">⏱ 时间 0:00</span>
           <span id="heartStat">💖 ♡♡♡</span>
         </div>
-        <button id="muteBtn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; box-shadow:none;">🔊</button>
       </div>
 
       <div class="progress hidden" id="progressBar" aria-hidden="true">
@@ -38,7 +37,7 @@
         <div id="overlay" class="overlay">
           <div class="overlay-panel">
             <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: #7b5dc8;">月光花园</h1>
-            <p id="overlayCopy">月光花园变暗了。Iris 需要收集星光种子来唤醒花朵，打开月光门。准备好了吗？</p>
+            <p id="overlayCopy">月光花园变暗了。帮助 Iris 收集星光种子，唤醒沉睡的花朵，打开闪闪发光的月光门。</p>
             
             <!-- Cozy Mode Toggle -->
             <div class="setting-item" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 20px 0;">
@@ -51,7 +50,6 @@
 
             <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
               <button id="startBtn" type="button" class="btn-primary">开始冒险</button>
-              <button id="stickerBookBtn" type="button" class="btn-secondary">贴纸书</button>
             </div>
           </div>
         </div>
@@ -62,24 +60,7 @@
             <h2 style="color: #2e8b68;">闯关成功！</h2>
             <div class="stars-display" style="font-size: 2rem; color: #ffd700; margin: 10px 0;">⭐⭐⭐</div>
             <p id="complete-stats">种子: 8/8 | 时间: 1:20 | 生命: 3</p>
-            <p id="sticker-unlocked-msg" style="color: #d85f76; font-weight: bold;"></p>
-            <button id="nextLevelBtn" class="btn-primary">下一关</button>
-          </div>
-        </div>
-
-        <!-- Sticker Book Overlay -->
-        <div id="sticker-panel" class="overlay hidden">
-          <div class="overlay-panel" style="width: min(500px, 100%);">
-            <h2>我的贴纸书</h2>
-            <div class="sticker-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
-              <div class="sticker locked" id="st-cat">🐱<span class="sticker-name">月亮猫</span></div>
-              <div class="sticker locked" id="st-bunny">🐰<span class="sticker-name">星光兔</span></div>
-              <div class="sticker locked" id="st-owl">🦉<span class="sticker-name">瞌睡鸮</span></div>
-              <div class="sticker locked" id="st-fox">🦊<span class="sticker-name">水晶狐</span></div>
-              <div class="sticker locked" id="st-frog">🐸<span class="sticker-name">发光蛙</span></div>
-              <div class="sticker locked" id="st-dragon">🐲<span class="sticker-name">小飞龙</span></div>
-            </div>
-            <button id="closeStickerBtn" class="btn-secondary">返回</button>
+            <button id="nextLevelBtn" class="btn-primary" style="margin-top: 15px;">下一关</button>
           </div>
         </div>
       </div>

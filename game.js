@@ -23,11 +23,6 @@ const els = {
   completeOverlay: document.querySelector("#complete-overlay"),
   completeStats: document.querySelector("#complete-stats"),
   nextLevel: document.querySelector("#nextLevelBtn"),
-  stickerBook: document.querySelector("#stickerBookBtn"),
-  stickerPanel: document.querySelector("#sticker-panel"),
-  closeSticker: document.querySelector("#closeStickerBtn"),
-  stickerMsg: document.querySelector("#sticker-unlocked-msg"),
-  muteBtn: document.querySelector("#muteBtn"),
 };
 
 const TILE = 48;
@@ -42,12 +37,11 @@ let runTime = 0;
 let levelTime = 0;
 let sparkle = 0;
 let toastTimer = 0;
+let lastGateHint = 0;
 let overlayAction = "start";
 
-// --- New Features ---
+// --- Focused Features ---
 let cozyMode = true;
-let muted = false;
-let ownedStickers = JSON.parse(localStorage.getItem('iris_moon_stickers')) || [];
 let showHintPath = false;
 let livesLostThisLevel = 0;
 
@@ -69,8 +63,7 @@ const levels = [
       "#..................#",
       "####################",
     ],
-    shadows: [], // No enemies
-    hiddenFlower: { x: 5.5, y: 3.5, found: false, sticker: 'cat' },
+    shadows: [],
   },
   {
     name: "第 2 关：穿过迷雾池塘",
@@ -89,8 +82,7 @@ const levels = [
       "#..................#",
       "####################",
     ],
-    shadows: [], // Still no shadows, just introduced ponds
-    hiddenFlower: { x: 14.5, y: 1.5, found: false, sticker: 'bunny' },
+    shadows: [],
   },
   {
     name: "第 3 关：避开跳舞的阴影",
@@ -110,9 +102,8 @@ const levels = [
       "####################",
     ],
     shadows: [
-      { x: 12.5, y: 1.5, minX: 9.5, maxX: 17.5, speed: 1.0 }, // Only one slow shadow
+      { x: 12.5, y: 1.5, minX: 9.5, maxX: 17.5, speed: 1.0 },
     ],
-    hiddenFlower: { x: 1.5, y: 10.5, found: false, sticker: 'owl' },
   },
   {
     name: "第 4 关：寻找隐藏的爱心",
@@ -135,7 +126,6 @@ const levels = [
       { x: 3.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.2, axis: "y" },
       { x: 12.5, y: 5.5, minY: 3.5, maxY: 9.5, speed: 1.2, axis: "y" },
     ],
-    hiddenFlower: { x: 16.5, y: 1.5, found: false, sticker: 'fox' },
   },
   {
     name: "第 5 关：点亮月亮桥",
@@ -159,7 +149,6 @@ const levels = [
       { x: 12.5, y: 9.5, minX: 7.5, maxX: 16.5, speed: 1.5 },
       { x: 18.5, y: 4.5, minY: 1.5, maxY: 8.5, speed: 1.2, axis: "y" },
     ],
-    hiddenFlower: { x: 1.5, y: 7.5, found: false, sticker: 'frog' },
   },
   {
     name: "第 6 关：打开最后的月光门",
@@ -184,7 +173,6 @@ const levels = [
       { x: 15.5, y: 1.5, minX: 12.5, maxX: 18.5, speed: 1.7 },
       { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 1.3, axis: "y" },
     ],
-    hiddenFlower: { x: 11.5, y: 1.5, found: false, sticker: 'dragon' },
   },
 ];
 
@@ -236,7 +224,7 @@ function loadLevel(index) {
   livesLostThisLevel = 0;
   els.mission.textContent = level.mission;
   
-  // HUD Fix
+  // Update HUD text (even if hidden)
   els.level.textContent = `🌙 ${level.name}`;
   els.seeds.textContent = `⭐ 星种子：0 / ${state.totalSeeds}`;
   
@@ -257,7 +245,7 @@ function startGame() {
   keys.clear();
   els.pause.textContent = "暂停";
   
-  // Show HUD
+  // Show HUD ONLY after clicking start
   els.hud.classList.remove("hidden");
   els.progressBar.classList.remove("hidden");
   
@@ -374,22 +362,12 @@ function collectItems() {
       const collectedCount = state.seeds.filter((item) => item.collected).length;
       els.seeds.textContent = `⭐ 星种子：${collectedCount} / ${state.totalSeeds}`;
       
-      playDing();
-      
       const left = state.totalSeeds - collectedCount;
       if (left === 0) {
         showToast("星光种子收集完成！月光门打开啦！", 2);
       }
     }
   });
-  
-  // Hidden Flower
-  const level = levels[levelIndex];
-  if (level.hiddenFlower && !level.hiddenFlower.found && distance(level.hiddenFlower, state.player) < 0.55) {
-      level.hiddenFlower.found = true;
-      showToast("你找到了隐藏的月亮花！", 2);
-      unlockSticker(level.hiddenFlower.sticker);
-  }
   
   if (state.key && !state.key.collected && distance(state.key, state.player) < 0.55) {
     state.key.collected = true;
@@ -416,8 +394,6 @@ function checkShadowHits() {
   livesLostThisLevel++;
   state.player.invincible = 2.0; // 2 seconds of invincibility
   
-  // Screen shake (visual effect handled by Canvas or CSS, here we just do a gentle flash or reset)
-  
   // Reset player to start of level
   const level = levels[levelIndex];
   level.map.forEach((row, y) => {
@@ -433,7 +409,6 @@ function checkShadowHits() {
   
   if (hearts <= 0) {
       if (cozyMode) {
-          // Restart ONLY current level in Cozy Mode
           hearts = MAX_HEARTS;
           loadLevel(levelIndex);
           showToast("再试一次，Iris 离月亮树更近啦。");
@@ -455,37 +430,26 @@ function checkExit() {
 }
 
 function showLevelCompleteScreen() {
-    const level = levels[levelIndex];
     let stars = 0;
     const allSeeds = state.seeds.every(s => s.collected);
     if (allSeeds) stars++;
     if (livesLostThisLevel === 0) stars++;
-    if (level.hiddenFlower && level.hiddenFlower.found) stars++;
+    // 3rd star for finding flower removed as requested to keep it simple
+    if (stars === 2) stars++; // Give 3 stars if both conditions met, since flower is removed
     
     let starsStr = "⭐".repeat(stars) + "☆".repeat(3 - stars);
     
     document.querySelector(".stars-display").textContent = starsStr;
     els.completeStats.textContent = `种子: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | 时间: ${formatTime(levelTime)} | 扣血: ${livesLostThisLevel}`;
     
-    if (level.hiddenFlower && level.hiddenFlower.found) {
-        els.stickerMsg.textContent = `恭喜解锁新贴纸：${getStickerName(level.hiddenFlower.sticker)}！`;
-    } else {
-        els.stickerMsg.textContent = "";
-    }
-    
     els.completeOverlay.classList.remove("hidden");
-}
-
-function getStickerName(id) {
-    const names = { 'cat': '月亮猫', 'bunny': '星光兔', 'owl': '瞌睡鸮', 'fox': '水晶狐', 'frog': '发光蛙', 'dragon': '小飞龙' };
-    return names[id] || id;
 }
 
 els.nextLevel.addEventListener("click", () => {
     els.completeOverlay.classList.add("hidden");
     levelIndex++;
     if (levelIndex >= levels.length) {
-        showOverlay("大功告成！", "月光花园再次闪耀！你收集了所有的种子和贴纸。", "再玩一次", "start");
+        showOverlay("大功告成！", "月光花园再次闪耀！你完成了所有冒险。", "再玩一次", "start");
         return;
     }
     loadLevel(levelIndex);
@@ -506,16 +470,16 @@ function progressPercent() {
   return ((levelIndex + seedProgress) / levels.length) * 100;
 }
 
+function hideOverlay() {
+  els.overlay.classList.add("hidden");
+}
+
 function showOverlay(title, copy, button, action = "start") {
   els.overlayTitle.textContent = title;
   els.overlayCopy.textContent = copy;
   els.start.textContent = button;
   overlayAction = action;
   els.overlay.classList.remove("hidden");
-}
-
-function hideOverlay() {
-  els.overlay.classList.add("hidden");
 }
 
 function showToast(message, seconds = 1.7) {
@@ -535,36 +499,10 @@ function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-// --- Sticker System ---
-function unlockSticker(id) {
-    if (!ownedStickers.includes(id)) {
-        ownedStickers.push(id);
-        localStorage.setItem('iris_moon_stickers', JSON.stringify(ownedStickers));
-    }
-    updateStickersUI();
-}
-
-function updateStickersUI() {
-    ['cat', 'bunny', 'owl', 'fox', 'frog', 'dragon'].forEach(id => {
-        const el = document.getElementById(`st-${id}`);
-        if (el) {
-            if (ownedStickers.includes(id)) el.classList.remove('locked');
-            else el.classList.add('locked');
-        }
-    });
-}
-
-// --- Audio & Effects (Faked with visuals or Web Audio if simple) ---
-function playDing() {
-    if (muted) return;
-    // Faking it with a visual effect in Canvas for now (sparkle)
-}
-
 function createFloatingText(text, x, y) {
     const el = document.createElement('div');
     el.className = 'floating-text';
     el.textContent = text;
-    // Map canvas coordinates to screen coordinates if needed, but here we just append to a container
     const container = document.getElementById('floating-text-container');
     if (container) {
         el.style.left = `${x * TILE}px`;
@@ -584,7 +522,6 @@ function draw() {
   drawSeeds();
   drawKey();
   drawHeartPickups();
-  drawHiddenFlower();
   drawShadows();
   drawPlayer();
   drawHintPath();
@@ -673,22 +610,6 @@ function drawHeartPickups() {
   });
 }
 
-function drawHiddenFlower() {
-    const level = levels[levelIndex];
-    if (level.hiddenFlower && !level.hiddenFlower.found) {
-        const x = level.hiddenFlower.x * TILE;
-        const y = level.hiddenFlower.y * TILE;
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.arc(x, y, 12, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#ffd700";
-        ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
-
 function drawShadows() {
   state.shadows.forEach((shadow) => {
     const x = shadow.x * TILE;
@@ -717,7 +638,6 @@ function drawPlayer() {
 function drawHintPath() {
     if (!showHintPath) return;
     
-    // Find nearest seed
     let nearest = null;
     let minDist = Infinity;
     state.seeds.forEach(seed => {
@@ -777,20 +697,6 @@ els.help.addEventListener("click", () => {
     els.help.textContent = showHintPath ? "隐藏指引" : "帮我一下";
 });
 
-els.stickerBook.addEventListener("click", () => {
-    els.stickerPanel.classList.remove("hidden");
-    updateStickersUI();
-});
-
-els.closeSticker.addEventListener("click", () => {
-    els.stickerPanel.classList.add("hidden");
-});
-
-els.muteBtn.addEventListener("click", () => {
-    muted = !muted;
-    els.muteBtn.textContent = muted ? "🔇" : "🔊";
-});
-
 // D-Pad
 document.querySelectorAll(".pad button").forEach((button) => {
   const map = { up: "arrowup", down: "arrowdown", left: "arrowleft", right: "arrowright" };
@@ -801,5 +707,5 @@ document.querySelectorAll(".pad button").forEach((button) => {
 });
 
 // Init
-updateStickersUI();
+loadLevel(0);
 draw();
