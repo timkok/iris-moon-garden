@@ -22,6 +22,7 @@
           <span id="bonusStat">寻找钥匙</span>
           <span id="timeStat">⏱ 时间 0:00</span>
           <span id="heartStat">💖 ♡♡♡</span>
+          <button id="muteBtn" class="icon-btn" type="button" aria-label="关闭声音" aria-pressed="false">🔊</button>
         </div>
       </div>
 
@@ -31,12 +32,13 @@
 
       <div class="canvas-wrap">
         <canvas id="game" width="960" height="576"></canvas>
+        <div id="damageFlash" class="damage-flash hidden" aria-hidden="true"></div>
         <div id="toast" class="toast hidden" aria-live="polite"></div>
         
         <!-- Start / Title Overlay -->
         <div id="overlay" class="overlay">
           <div class="overlay-panel">
-            <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: #7b5dc8;">月光花园</h1>
+            <h1 id="overlayTitle" style="font-size: 2.5rem; margin-bottom: 10px; color: #7b5dc8;">月光花园</h1>
             <p id="overlayCopy">月光花园变暗了。帮助 Iris 收集星光种子，唤醒沉睡的花朵，打开闪闪发光的月光门。</p>
             
             <!-- Cozy Mode Toggle -->
@@ -58,10 +60,22 @@
         <div id="complete-overlay" class="overlay hidden">
           <div class="overlay-panel">
             <h2 style="color: #2e8b68;">闯关成功！</h2>
-            <div class="stars-display" style="font-size: 2rem; color: #ffd700; margin: 10px 0;">⭐⭐⭐</div>
+            <div class="stars-display" aria-label="本关星星" style="font-size: 2rem; color: #ffd700; margin: 10px 0;">
+              <span>☆</span><span>☆</span><span>☆</span>
+            </div>
             <p id="complete-stats">种子: 8/8 | 时间: 1:20 | 生命: 3</p>
             <button id="nextLevelBtn" class="btn-primary" style="margin-top: 15px;">下一关</button>
           </div>
+        </div>
+
+        <div class="mobile-controls" aria-label="移动端控制">
+          <div class="mobile-pad" aria-label="虚拟方向键">
+            <button data-dir="up" type="button" aria-label="向上">↑</button>
+            <button data-dir="left" type="button" aria-label="向左">←</button>
+            <button data-dir="down" type="button" aria-label="向下">↓</button>
+            <button data-dir="right" type="button" aria-label="向右">→</button>
+          </div>
+          <button id="mobilePauseBtn" class="mobile-pause" type="button" aria-label="暂停">暂停</button>
         </div>
       </div>
 
@@ -83,6 +97,7 @@
   <!-- Floating Text Container -->
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
+  <script src="./audio-manager.js"></script>
   <script src="./game.js"></script>
   <script src="./bot.js"></script>
 </body>

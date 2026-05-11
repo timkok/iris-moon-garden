@@ -88,6 +88,7 @@
   // ── button ──────────────────────────────────────────────────────────────────
 
   const btn = document.getElementById('botBtn');
+  if (!btn) return;
 
   function syncButton() {
     btn.textContent = botActive ? '🙋 Manual' : '🤖 Auto Play';

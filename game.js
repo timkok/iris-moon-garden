@@ -8,6 +8,7 @@ const els = {
   bonus: document.querySelector("#bonusStat"),
   time: document.querySelector("#timeStat"),
   hearts: document.querySelector("#heartStat"),
+  mute: document.querySelector("#muteBtn"),
   progress: document.querySelector("#progressFill"),
   overlay: document.querySelector("#overlay"),
   overlayTitle: document.querySelector("#overlayTitle"),
@@ -23,9 +24,13 @@ const els = {
   completeOverlay: document.querySelector("#complete-overlay"),
   completeStats: document.querySelector("#complete-stats"),
   nextLevel: document.querySelector("#nextLevelBtn"),
+  mobilePause: document.querySelector("#mobilePauseBtn"),
+  damageFlash: document.querySelector("#damageFlash"),
 };
 
 const TILE = 48;
+const WORLD_WIDTH = 960;
+const WORLD_HEIGHT = 576;
 let MAX_HEARTS = 3;
 const keys = new Set();
 let lastTime = 0;
@@ -44,6 +49,21 @@ let overlayAction = "start";
 let cozyMode = true;
 let showHintPath = false;
 let livesLostThisLevel = 0;
+let particles = [];
+let touchVector = null;
+let touchStart = null;
+let audioUnlocked = false;
+
+function resizeCanvas() {
+  const ratio = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = Math.round(WORLD_WIDTH * ratio);
+  canvas.height = Math.round(WORLD_HEIGHT * ratio);
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+
+resizeCanvas();
 
 const levels = [
   {
@@ -232,6 +252,7 @@ function loadLevel(index) {
 }
 
 function startGame() {
+  unlockAudio();
   cozyMode = els.cozyToggle.checked;
   MAX_HEARTS = cozyMode ? 5 : 3;
   hearts = MAX_HEARTS;
@@ -269,6 +290,7 @@ function update(dt) {
   toastTimer = Math.max(0, toastTimer - dt);
   if (toastTimer === 0) els.toast.classList.add("hidden");
   state.player.invincible = Math.max(0, state.player.invincible - dt);
+  updateParticles(dt);
   
   movePlayer(dt);
   moveShadows(dt);
@@ -285,6 +307,10 @@ function movePlayer(dt) {
   if (keys.has("arrowright") || keys.has("d")) dx += 1;
   if (keys.has("arrowup") || keys.has("w")) dy -= 1;
   if (keys.has("arrowdown") || keys.has("s")) dy += 1;
+  if (touchVector) {
+    dx += touchVector.x;
+    dy += touchVector.y;
+  }
 
   if (dx && dy) {
     dx *= Math.SQRT1_2;
@@ -359,6 +385,9 @@ function collectItems() {
   state.seeds.forEach((seed) => {
     if (!seed.collected && distance(seed, state.player) < 0.55) {
       seed.collected = true;
+      spawnParticles(seed.x, seed.y, "#f2b83d", 8);
+      animateHud(els.seeds, "hud-pop");
+      window.audioManager?.play("collectSeed");
       const collectedCount = state.seeds.filter((item) => item.collected).length;
       els.seeds.textContent = `⭐ 星种子：${collectedCount} / ${state.totalSeeds}`;
       
@@ -372,12 +401,17 @@ function collectItems() {
   if (state.key && !state.key.collected && distance(state.key, state.player) < 0.55) {
     state.key.collected = true;
     state.hasKey = true;
+    spawnParticles(state.key.x, state.key.y, "#c865a7", 7);
+    window.audioManager?.play("doorOpen");
     showToast("彩虹钥匙找到了！");
   }
   
   state.heartPickups.forEach((heart) => {
     if (heart.collected || distance(heart, state.player) >= 0.55) return;
     heart.collected = true;
+    spawnParticles(heart.x, heart.y, "#d85f76", 8);
+    animateHud(els.hearts, "hud-shake");
+    window.audioManager?.play("collectHeart");
     if (hearts < MAX_HEARTS) {
       hearts += 1;
       createFloatingText("+1 ❤️", state.player.x, state.player.y);
@@ -392,7 +426,10 @@ function checkShadowHits() {
   
   hearts -= 1;
   livesLostThisLevel++;
-  state.player.invincible = 2.0; // 2 seconds of invincibility
+  state.player.invincible = 1.0;
+  triggerDamageFlash();
+  animateHud(els.hearts, "hud-shake");
+  window.audioManager?.play("hurt");
   
   // Reset player to start of level
   const level = levels[levelIndex];
@@ -437,9 +474,8 @@ function showLevelCompleteScreen() {
     // 3rd star for finding flower removed as requested to keep it simple
     if (stars === 2) stars++; // Give 3 stars if both conditions met, since flower is removed
     
-    let starsStr = "⭐".repeat(stars) + "☆".repeat(3 - stars);
-    
-    document.querySelector(".stars-display").textContent = starsStr;
+    renderWinStars(stars);
+    window.audioManager?.play("win");
     els.completeStats.textContent = `种子: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | 时间: ${formatTime(levelTime)} | 扣血: ${livesLostThisLevel}`;
     
     els.completeOverlay.classList.remove("hidden");
@@ -461,6 +497,7 @@ function updateHud() {
   els.bonus.textContent = state.hasKey ? "钥匙已找到" : "寻找钥匙";
   els.time.textContent = `⏱ 时间 ${formatTime(runTime)}`;
   els.hearts.textContent = "💖 " + "♡".repeat(hearts);
+  syncMuteButton();
   els.progress.style.width = `${Math.round(progressPercent())}%`;
 }
 
@@ -486,6 +523,87 @@ function showToast(message, seconds = 1.7) {
   els.toast.textContent = message;
   els.toast.classList.remove("hidden");
   toastTimer = seconds;
+}
+
+function animateHud(element, className) {
+  if (!element) return;
+  element.classList.remove(className);
+  void element.offsetWidth;
+  element.classList.add(className);
+}
+
+function triggerDamageFlash() {
+  if (!els.damageFlash) return;
+  els.damageFlash.classList.remove("hidden", "hit");
+  void els.damageFlash.offsetWidth;
+  els.damageFlash.classList.add("hit");
+  window.setTimeout(() => els.damageFlash.classList.add("hidden"), 170);
+}
+
+function spawnParticles(x, y, color, count = 7) {
+  for (let i = 0; i < count; i += 1) {
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.45;
+    const speed = 90 + Math.random() * 90;
+    particles.push({
+      x: x * TILE,
+      y: y * TILE,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 0.22 + Math.random() * 0.18,
+      age: 0,
+      color,
+    });
+  }
+}
+
+function updateParticles(dt) {
+  particles = particles.filter((particle) => {
+    particle.age += dt;
+    particle.x += particle.vx * dt;
+    particle.y += particle.vy * dt;
+    particle.vy += 180 * dt;
+    return particle.age < particle.life;
+  });
+}
+
+function drawParticles() {
+  particles.forEach((particle) => {
+    const alpha = Math.max(0, 1 - particle.age / particle.life);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = particle.color;
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, 4 + alpha * 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function renderWinStars(stars) {
+  const holder = document.querySelector(".stars-display");
+  holder.innerHTML = "";
+  for (let i = 0; i < 3; i += 1) {
+    const star = document.createElement("span");
+    star.textContent = i < stars ? "⭐" : "☆";
+    holder.appendChild(star);
+    window.setTimeout(() => {
+      star.classList.add("pop");
+      if (i < stars) window.audioManager?.play("win", { volume: 0.35, rate: 1 + i * 0.08 });
+    }, i * 300);
+  }
+}
+
+function syncMuteButton() {
+  if (!els.mute || !window.audioManager) return;
+  els.mute.textContent = window.audioManager.muted ? "🔇" : "🔊";
+  els.mute.setAttribute("aria-label", window.audioManager.muted ? "打开声音" : "关闭声音");
+  els.mute.setAttribute("aria-pressed", String(window.audioManager.muted));
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  window.audioManager?.unlock();
+  syncMuteButton();
 }
 
 function formatTime(seconds) {
@@ -515,28 +633,29 @@ function createFloatingText(text, x, y) {
 // --- Drawing Functions ---
 
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
   drawGarden();
   drawExit();
   drawDoor();
   drawSeeds();
   drawKey();
   drawHeartPickups();
+  drawParticles();
   drawShadows();
   drawPlayer();
   drawHintPath();
 }
 
 function drawGarden() {
-  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  const gradient = ctx.createLinearGradient(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
   gradient.addColorStop(0, "#cfe9f2");
   gradient.addColorStop(0.48, "#d9ead1");
   gradient.addColorStop(1, "#f4e3ca");
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-  for (let y = 0; y < canvas.height / TILE; y += 1) {
-    for (let x = 0; x < canvas.width / TILE; x += 1) {
+  for (let y = 0; y < WORLD_HEIGHT / TILE; y += 1) {
+    for (let x = 0; x < WORLD_WIDTH / TILE; x += 1) {
       ctx.fillStyle = (x + y) % 2 ? "rgba(255,255,255,0.12)" : "rgba(70,130,110,0.08)";
       ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
     }
@@ -662,6 +781,7 @@ function drawHintPath() {
 // --- Event Listeners ---
 
 window.addEventListener("keydown", (event) => {
+  unlockAudio();
   const key = event.key.toLowerCase();
   keys.add(key);
   if (key === " " && running) {
@@ -673,6 +793,7 @@ window.addEventListener("keydown", (event) => {
 window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
 
 els.start.addEventListener("click", () => {
+  unlockAudio();
   if (overlayAction === "retry") {
     levelIndex = 0;
     startGame();
@@ -687,9 +808,15 @@ els.restart.addEventListener("click", () => {
 });
 
 els.pause.addEventListener("click", () => {
-    if (!running) return;
-    paused = !paused;
-    els.pause.textContent = paused ? "继续" : "暂停";
+    togglePause();
+});
+
+els.mobilePause.addEventListener("click", () => togglePause());
+
+els.mute.addEventListener("click", () => {
+  unlockAudio();
+  window.audioManager?.toggleMuted();
+  syncMuteButton();
 });
 
 els.help.addEventListener("click", () => {
@@ -698,14 +825,56 @@ els.help.addEventListener("click", () => {
 });
 
 // D-Pad
-document.querySelectorAll(".pad button").forEach((button) => {
+document.querySelectorAll(".pad button, .mobile-pad button").forEach((button) => {
   const map = { up: "arrowup", down: "arrowdown", left: "arrowleft", right: "arrowright" };
   const key = map[button.dataset.dir];
-  button.addEventListener("pointerdown", () => keys.add(key));
+  button.addEventListener("pointerdown", (event) => {
+    unlockAudio();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    keys.add(key);
+  });
   button.addEventListener("pointerup", () => keys.delete(key));
+  button.addEventListener("pointercancel", () => keys.delete(key));
   button.addEventListener("pointerleave", () => keys.delete(key));
 });
 
+function togglePause() {
+  if (!running) return;
+  paused = !paused;
+  els.pause.textContent = paused ? "继续" : "暂停";
+  els.mobilePause.textContent = paused ? "继续" : "暂停";
+}
+
+canvas.addEventListener("pointerdown", (event) => {
+  unlockAudio();
+  touchStart = { x: event.clientX, y: event.clientY };
+  touchVector = null;
+  canvas.setPointerCapture(event.pointerId);
+});
+
+canvas.addEventListener("pointermove", (event) => {
+  if (!touchStart) return;
+  const dx = event.clientX - touchStart.x;
+  const dy = event.clientY - touchStart.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 18) return;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    touchVector = { x: Math.sign(dx), y: 0 };
+  } else {
+    touchVector = { x: 0, y: Math.sign(dy) };
+  }
+});
+
+function endTouchMove() {
+  touchStart = null;
+  touchVector = null;
+}
+
+canvas.addEventListener("pointerup", endTouchMove);
+canvas.addEventListener("pointercancel", endTouchMove);
+window.addEventListener("resize", resizeCanvas);
+
 // Init
+syncMuteButton();
 loadLevel(0);
 draw();
