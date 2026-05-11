@@ -28,7 +28,22 @@ Open this file in a browser:
 - `styles.css`: visual design
 - `game.js`: Canvas game logic
 - `audio-manager.js`: lazy-loaded Web Audio wrapper
+- `save-manager.js`: versioned localStorage progress wrapper
 - `assets/audio/`: tiny locally generated CC0 placeholder sounds
+
+## Save Data
+
+Progress is stored in `localStorage` under `iris-moon-garden:v1`:
+
+```json
+{
+  "unlockedLevel": 1,
+  "bestTimes": {},
+  "bestStars": {},
+  "muted": false,
+  "cozyMode": false
+}
+```
 
 ## Audio Credits
 

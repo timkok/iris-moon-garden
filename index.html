@@ -52,7 +52,16 @@
 
             <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
               <button id="startBtn" type="button" class="btn-primary">开始冒险</button>
+              <button id="levelSelectBtn" type="button" class="btn-secondary">选择关卡</button>
             </div>
+          </div>
+        </div>
+
+        <div id="level-select-overlay" class="overlay hidden">
+          <div class="overlay-panel level-select-panel">
+            <h2>选择关卡</h2>
+            <div id="levelGrid" class="level-grid" aria-label="关卡列表"></div>
+            <button id="levelBackBtn" type="button" class="btn-secondary">返回</button>
           </div>
         </div>
 
@@ -77,6 +86,8 @@
           </div>
           <button id="mobilePauseBtn" class="mobile-pause" type="button" aria-label="暂停">暂停</button>
         </div>
+
+        <div id="tutorialBubble" class="tutorial-bubble hidden" aria-live="polite"></div>
       </div>
 
       <div class="controls">
@@ -97,6 +108,7 @@
   <!-- Floating Text Container -->
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
+  <script src="./save-manager.js"></script>
   <script src="./audio-manager.js"></script>
   <script src="./game.js"></script>
   <script src="./bot.js"></script>

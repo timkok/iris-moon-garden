@@ -14,6 +14,10 @@ const els = {
   overlayTitle: document.querySelector("#overlayTitle"),
   overlayCopy: document.querySelector("#overlayCopy"),
   start: document.querySelector("#startBtn"),
+  levelSelect: document.querySelector("#levelSelectBtn"),
+  levelSelectOverlay: document.querySelector("#level-select-overlay"),
+  levelGrid: document.querySelector("#levelGrid"),
+  levelBack: document.querySelector("#levelBackBtn"),
   restart: document.querySelector("#restartBtn"),
   pause: document.querySelector("#pauseBtn"),
   toast: document.querySelector("#toast"),
@@ -26,6 +30,7 @@ const els = {
   nextLevel: document.querySelector("#nextLevelBtn"),
   mobilePause: document.querySelector("#mobilePauseBtn"),
   damageFlash: document.querySelector("#damageFlash"),
+  tutorialBubble: document.querySelector("#tutorialBubble"),
 };
 
 const TILE = 48;
@@ -53,6 +58,9 @@ let particles = [];
 let touchVector = null;
 let touchStart = null;
 let audioUnlocked = false;
+let tutorialStage = 0;
+let tutorialSteps = 0;
+let completedStars = 0;
 
 function resizeCanvas() {
   const ratio = Math.max(1, window.devicePixelRatio || 1);
@@ -67,19 +75,19 @@ resizeCanvas();
 
 const levels = [
   {
-    name: "第 1 关：唤醒沉睡的花朵",
-    mission: "收集所有星光种子，然后走进发光的月光门。本关没有敌人哦！",
+    name: "第 1 关：小小教学",
+    mission: "跟着提示走，一起学会在月光花园里冒险。",
     map: [
       "####################",
-      "#I...*.......#.....#",
-      "#.####.#####.#.###.#",
-      "#......#...*...#...#",
-      "#.##.#.#.#####.#.#.#",
-      "#.*..#...#.....#.*.#",
-      "#.#######.#.#####..#",
-      "#.........#.....*..#",
-      "#.######..#####.##.#",
-      "#......*.........E.#",
+      "#I..*..............#",
+      "#..................#",
+      "#..................#",
+      "#..................#",
+      "#..........K.D.E...#",
+      "#..................#",
+      "#..................#",
+      "#..................#",
+      "#..................#",
       "#..................#",
       "####################",
     ],
@@ -240,6 +248,8 @@ function loadLevel(index) {
 
   state.totalSeeds = state.seeds.length;
   state.player.invincible = 1;
+  tutorialStage = index === 0 ? 1 : 0;
+  tutorialSteps = 0;
   levelTime = 0;
   livesLostThisLevel = 0;
   els.mission.textContent = level.mission;
@@ -252,12 +262,18 @@ function loadLevel(index) {
 }
 
 function startGame() {
+  startLevel(0);
+}
+
+function startLevel(index) {
   unlockAudio();
-  cozyMode = els.cozyToggle.checked;
+  levelIndex = index;
+  const saved = window.saveManager?.save({ cozyMode: els.cozyToggle.checked, muted: window.audioManager?.muted || false });
+  cozyMode = levelIndex === 0 ? true : (saved?.cozyMode ?? els.cozyToggle.checked);
+  els.cozyToggle.checked = cozyMode;
   MAX_HEARTS = cozyMode ? 5 : 3;
   hearts = MAX_HEARTS;
   
-  levelIndex = 0;
   runTime = 0;
   levelTime = 0;
   paused = false;
@@ -272,6 +288,7 @@ function startGame() {
   
   loadLevel(levelIndex);
   hideOverlay();
+  hideLevelSelect();
   requestAnimationFrame(loop);
 }
 
@@ -285,14 +302,17 @@ function loop(time) {
 
 function update(dt) {
   sparkle += dt;
-  runTime += dt;
-  levelTime += dt;
+  if (!isTutorialLevel()) {
+    runTime += dt;
+    levelTime += dt;
+  }
   toastTimer = Math.max(0, toastTimer - dt);
   if (toastTimer === 0) els.toast.classList.add("hidden");
   state.player.invincible = Math.max(0, state.player.invincible - dt);
   updateParticles(dt);
   
   movePlayer(dt);
+  updateTutorial();
   moveShadows(dt);
   collectItems();
   checkShadowHits();
@@ -321,6 +341,7 @@ function movePlayer(dt) {
   const speed = state.player.speed * speedMultiplier;
   tryMove(dx * speed * dt, 0);
   tryMove(0, dy * speed * dt);
+  if (isTutorialLevel() && (dx || dy)) tutorialSteps += dt * 4;
 }
 
 function tryMove(dx, dy) {
@@ -383,6 +404,7 @@ function moveShadows(dt) {
 
 function collectItems() {
   state.seeds.forEach((seed) => {
+    if (isTutorialLevel() && tutorialStage < 2) return;
     if (!seed.collected && distance(seed, state.player) < 0.55) {
       seed.collected = true;
       spawnParticles(seed.x, seed.y, "#f2b83d", 8);
@@ -393,17 +415,18 @@ function collectItems() {
       
       const left = state.totalSeeds - collectedCount;
       if (left === 0) {
+        if (isTutorialLevel()) tutorialStage = Math.max(tutorialStage, 3);
         showToast("星光种子收集完成！月光门打开啦！", 2);
       }
     }
   });
   
-  if (state.key && !state.key.collected && distance(state.key, state.player) < 0.55) {
+  if (state.key && !state.key.collected && (!isTutorialLevel() || tutorialStage >= 3) && distance(state.key, state.player) < 0.55) {
     state.key.collected = true;
-    state.hasKey = true;
+  state.hasKey = true;
     spawnParticles(state.key.x, state.key.y, "#c865a7", 7);
     window.audioManager?.play("doorOpen");
-    showToast("彩虹钥匙找到了！");
+  showToast("彩虹钥匙找到了！");
   }
   
   state.heartPickups.forEach((heart) => {
@@ -420,6 +443,7 @@ function collectItems() {
 }
 
 function checkShadowHits() {
+  if (isTutorialLevel()) return;
   if (state.player.invincible > 0) return;
   const hit = state.shadows.some((shadow) => distance(shadow, state.player) < 0.62);
   if (!hit) return;
@@ -457,6 +481,7 @@ function checkShadowHits() {
 }
 
 function checkExit() {
+  if (isTutorialLevel() && tutorialStage < 3) return;
   const allSeeds = state.seeds.every((seed) => seed.collected);
   const doorOpen = !state.door || state.hasKey;
   
@@ -473,12 +498,15 @@ function showLevelCompleteScreen() {
     if (livesLostThisLevel === 0) stars++;
     // 3rd star for finding flower removed as requested to keep it simple
     if (stars === 2) stars++; // Give 3 stars if both conditions met, since flower is removed
+    completedStars = stars;
+    window.saveManager?.updateLevel(levelIndex + 1, levelTime, stars);
     
     renderWinStars(stars);
     window.audioManager?.play("win");
     els.completeStats.textContent = `种子: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | 时间: ${formatTime(levelTime)} | 扣血: ${livesLostThisLevel}`;
     
     els.completeOverlay.classList.remove("hidden");
+    renderLevelGrid();
 }
 
 els.nextLevel.addEventListener("click", () => {
@@ -495,10 +523,29 @@ els.nextLevel.addEventListener("click", () => {
 
 function updateHud() {
   els.bonus.textContent = state.hasKey ? "钥匙已找到" : "寻找钥匙";
-  els.time.textContent = `⏱ 时间 ${formatTime(runTime)}`;
+  els.time.textContent = isTutorialLevel() ? "⏱ 教学关" : `⏱ 时间 ${formatTime(runTime)}`;
   els.hearts.textContent = "💖 " + "♡".repeat(hearts);
   syncMuteButton();
   els.progress.style.width = `${Math.round(progressPercent())}%`;
+}
+
+function isTutorialLevel() {
+  return levelIndex === 0;
+}
+
+function updateTutorial() {
+  if (!isTutorialLevel()) {
+    els.tutorialBubble.classList.add("hidden");
+    return;
+  }
+  if (tutorialStage === 1 && tutorialSteps >= 2) tutorialStage = 2;
+  const messages = {
+    1: "用方向键移动，先走两步试试看",
+    2: "捡起星种子，让花园亮一点",
+    3: "拿钥匙，再走进月光门",
+  };
+  els.tutorialBubble.textContent = messages[tutorialStage] || "";
+  els.tutorialBubble.classList.toggle("hidden", !messages[tutorialStage]);
 }
 
 function progressPercent() {
@@ -509,6 +556,10 @@ function progressPercent() {
 
 function hideOverlay() {
   els.overlay.classList.add("hidden");
+}
+
+function hideLevelSelect() {
+  els.levelSelectOverlay.classList.add("hidden");
 }
 
 function showOverlay(title, copy, button, action = "start") {
@@ -599,6 +650,27 @@ function syncMuteButton() {
   els.mute.setAttribute("aria-pressed", String(window.audioManager.muted));
 }
 
+function renderLevelGrid() {
+  if (!els.levelGrid) return;
+  const save = window.saveManager?.load() || { unlockedLevel: 1, bestStars: {} };
+  els.levelGrid.innerHTML = "";
+  levels.forEach((level, index) => {
+    const levelNumber = index + 1;
+    const unlocked = levelNumber <= save.unlockedLevel;
+    const stars = save.bestStars[String(levelNumber)] || 0;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `level-card${unlocked ? "" : " locked"}`;
+    button.disabled = !unlocked;
+    const starText = unlocked ? "⭐".repeat(stars) + "☆".repeat(3 - stars) : "🔒";
+    button.innerHTML = `<strong>第 ${levelNumber} 关</strong><span>${starText}</span>`;
+    button.addEventListener("click", () => {
+      if (unlocked) startLevel(index);
+    });
+    els.levelGrid.appendChild(button);
+  });
+}
+
 function unlockAudio() {
   if (audioUnlocked) return;
   audioUnlocked = true;
@@ -673,6 +745,7 @@ function drawGarden() {
 }
 
 function drawExit() {
+  if (isTutorialLevel() && tutorialStage < 3) return;
   const x = state.exit.x * TILE;
   const y = state.exit.y * TILE;
   const allSeeds = state.seeds.every((seed) => seed.collected);
@@ -689,6 +762,7 @@ function drawExit() {
 }
 
 function drawDoor() {
+  if (isTutorialLevel() && tutorialStage < 3) return;
   if (!state.door || state.hasKey) return;
   const x = state.door.x * TILE;
   const y = state.door.y * TILE;
@@ -698,6 +772,7 @@ function drawDoor() {
 
 function drawSeeds() {
   state.seeds.forEach((seed) => {
+    if (isTutorialLevel() && tutorialStage < 2) return;
     if (seed.collected) return;
     const x = seed.x * TILE;
     const y = seed.y * TILE + Math.sin(sparkle * 4 + seed.x) * 3;
@@ -710,6 +785,7 @@ function drawSeeds() {
 }
 
 function drawKey() {
+  if (isTutorialLevel() && tutorialStage < 3) return;
   if (!state.key || state.key.collected) return;
   const x = state.key.x * TILE;
   const y = state.key.y * TILE;
@@ -802,9 +878,15 @@ els.start.addEventListener("click", () => {
   }
 });
 
+els.levelSelect.addEventListener("click", () => {
+  renderLevelGrid();
+  els.levelSelectOverlay.classList.remove("hidden");
+});
+
+els.levelBack.addEventListener("click", hideLevelSelect);
+
 els.restart.addEventListener("click", () => {
-    levelIndex = 0;
-    startGame();
+    startLevel(levelIndex);
 });
 
 els.pause.addEventListener("click", () => {
@@ -875,6 +957,11 @@ canvas.addEventListener("pointercancel", endTouchMove);
 window.addEventListener("resize", resizeCanvas);
 
 // Init
+const savedGame = window.saveManager?.load();
+if (savedGame) {
+  els.cozyToggle.checked = savedGame.cozyMode;
+}
 syncMuteButton();
+renderLevelGrid();
 loadLevel(0);
 draw();
