@@ -1,7 +1,6 @@
 class AudioManager {
   constructor() {
-    this.storageKey = "iris-moon-garden:v1:muted";
-    this.muted = localStorage.getItem(this.storageKey) === "true";
+    this.muted = window.saveManager?.load().muted || localStorage.getItem("iris-moon-garden:v1:muted") === "true";
     this.unlocked = false;
     this.context = null;
     this.buffers = new Map();
@@ -76,7 +75,8 @@ class AudioManager {
 
   setMuted(muted) {
     this.muted = muted;
-    localStorage.setItem(this.storageKey, String(muted));
+    window.saveManager?.save({ muted });
+    localStorage.setItem("iris-moon-garden:v1:muted", String(muted));
     if (this.gain) this.gain.gain.value = muted ? 0 : 0.72;
     if (!muted) this.startBgm();
   }
