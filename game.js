@@ -16,17 +16,11 @@ const els = {
   restart: document.querySelector("#restartBtn"),
   pause: document.querySelector("#pauseBtn"),
   toast: document.querySelector("#toast"),
-  treasure: document.querySelector("#treasureBtn"),
-  treasurePanel: document.querySelector("#treasure-panel"),
-  closeTreasure: document.querySelector("#closeTreasureBtn"),
-  assist: document.querySelector("#assistBtn"),
-  assistPanel: document.querySelector("#assist-panel"),
-  closeAssist: document.querySelector("#closeAssistBtn"),
   bot: document.querySelector("#botBtn"),
 };
 
 const TILE = 48;
-let MAX_HEARTS = 3;
+const MAX_HEARTS = 3;
 const BEST_TIME_KEY = "irisMoonGardenBestSeconds";
 const keys = new Set();
 let lastTime = 0;
@@ -42,16 +36,10 @@ let toastTimer = 0;
 let lastGateHint = 0;
 let overlayAction = "start";
 
-// --- New Features (Game Modes & Rewards) ---
-let gameMode = "story"; // story, practice, challenge
-let ownedStickers = JSON.parse(localStorage.getItem('iris_moon_stickers')) || [];
-let unlockedCosmetics = JSON.parse(localStorage.getItem('iris_moon_cosmetics')) || [];
-let currentCosmetic = localStorage.getItem('iris_moon_current_cosmetic') || null;
-
 const levels = [
   {
-    name: "第 1 关: 月光小径",
-    mission: "在星种子路径中热身，然后找到月光门。",
+    name: "第 1 关：月光小径",
+    mission: "收集所有星光种子，然后走进发光的月光门。",
     map: [
       "####################",
       "#I...*.......#.....#",
@@ -71,7 +59,7 @@ const levels = [
     ],
   },
   {
-    name: "第 2 关: 萤火虫草地",
+    name: "第 2 关：萤火虫草地",
     mission: "在穿过彩虹门之前找到彩虹钥匙。",
     map: [
       "####################",
@@ -93,7 +81,7 @@ const levels = [
     ],
   },
   {
-    name: "第 3 关: 蓝月池塘",
+    name: "第 3 关：蓝月池塘",
     mission: "蓝色泥潭会减慢 Iris 的速度，趁阴影离开时穿过它们。",
     map: [
       "####################",
@@ -115,7 +103,7 @@ const levels = [
     ],
   },
   {
-    name: "第 4 关: 蘑菇林",
+    name: "第 4 关：蘑菇林",
     mission: "垂直移动的阴影在月亮行巡逻。看准时机穿过。",
     map: [
       "####################",
@@ -138,7 +126,7 @@ const levels = [
     ],
   },
   {
-    name: "第 5 关: 影子花园",
+    name: "第 5 关：影子花园",
     mission: "在危险的小道上开出一颗爱心。如果花园变得紧张，就抓住它。",
     map: [
       "####################",
@@ -161,7 +149,7 @@ const levels = [
     ],
   },
   {
-    name: "第 6 关: 月亮树",
+    name: "第 6 关：月亮树",
     mission: "最后的月光花园：收集远处的种子，打开门，躲避每一次巡逻。",
     map: [
       "####################",
@@ -233,26 +221,19 @@ function loadLevel(index) {
   levelTime = 0;
   els.mission.textContent = level.mission;
   
-  // HUD Fix: Ensure seeds show correct target on load
-  els.seeds.textContent = `⭐ 星种子 0 / ${state.totalSeeds}`;
+  // HUD Fix
+  els.level.textContent = `🌙 ${level.name}`;
+  els.seeds.textContent = `⭐ 星种子：0 / ${state.totalSeeds}`;
   
-  showToast(`${level.name}: ${level.mission}`, 2.6);
+  // Update overlay for next level or retry
+  els.overlayTitle.textContent = "准备好了吗，Iris？";
+  els.overlayCopy.textContent = `${level.name}。${level.mission}`;
+  
   updateHud();
 }
 
 function startGame() {
-  // Apply mode settings
-  if (gameMode === "practice") {
-    MAX_HEARTS = 99;
-    hearts = 99;
-  } else if (gameMode === "challenge") {
-    MAX_HEARTS = 1;
-    hearts = 1;
-  } else {
-    MAX_HEARTS = 3;
-    hearts = 3;
-  }
-
+  hearts = MAX_HEARTS;
   levelIndex = 0;
   runTime = 0;
   levelTime = 0;
@@ -303,10 +284,7 @@ function movePlayer(dt) {
     dy *= Math.SQRT1_2;
   }
 
-  let speedMultiplier = currentSpeedMultiplier();
-  if (gameMode === "practice") speedMultiplier *= 1.2; // Move faster in practice
-  
-  const speed = state.player.speed * speedMultiplier;
+  const speed = state.player.speed;
   tryMove(dx * speed * dt, 0);
   tryMove(0, dy * speed * dt);
 }
@@ -353,12 +331,7 @@ function moveShadows(dt) {
     const axis = shadow.axis || "x";
     const min = axis === "x" ? shadow.minX : shadow.minY;
     const max = axis === "x" ? shadow.maxX : shadow.maxY;
-    
-    let speed = shadow.speed;
-    if (gameMode === "practice") speed *= 0.7; // Slower in practice
-    if (gameMode === "challenge") speed *= 1.3; // Faster in challenge
-
-    shadow[axis] += shadow.dir * speed * dt;
+    shadow[axis] += shadow.dir * shadow.speed * dt;
     if (shadow[axis] > max) {
       shadow[axis] = max;
       shadow.dir = -1;
@@ -375,11 +348,11 @@ function collectItems() {
     if (!seed.collected && distance(seed, state.player) < 0.55) {
       seed.collected = true;
       const collectedCount = state.seeds.filter((item) => item.collected).length;
-      els.seeds.textContent = `⭐ 星种子 ${collectedCount} / ${state.totalSeeds}`;
+      els.seeds.textContent = `⭐ 星种子：${collectedCount} / ${state.totalSeeds}`;
       
       const left = state.totalSeeds - collectedCount;
       if (left === 0) {
-        showToast("星种子收集完成！月光门打开啦！", 2);
+        showToast("星光种子收集完成！月光门打开啦！", 2);
       } else {
         showToast(`太棒了，Iris！还剩 ${left} 个。`);
       }
@@ -404,11 +377,7 @@ function collectItems() {
 
 function checkShadowHits() {
   if (state.player.invincible > 0) return;
-  
-  let hitDist = 0.62;
-  if (gameMode === "practice") hitDist = 0.4; // More forgiving
-  
-  const hit = state.shadows.some((shadow) => distance(shadow, state.player) < hitDist);
+  const hit = state.shadows.some((shadow) => distance(shadow, state.player) < 0.62);
   if (!hit) return;
   
   hearts -= 1;
@@ -429,7 +398,11 @@ function checkShadowHits() {
   
   if (hearts <= 0) {
     running = false;
-    showOverlay("这次飞得很棒！", "再试一次，Iris 离月亮树更近啦。要不要用练习模式试一下？", "重新开始", "retry");
+    els.overlayTitle.textContent = "这次飞得很棒！";
+    els.overlayCopy.textContent = "再试一次，Iris 离月亮树更近啦。";
+    els.start.textContent = "重新开始";
+    overlayAction = "retry";
+    els.overlay.classList.remove("hidden");
   }
 }
 
@@ -439,18 +412,19 @@ function checkExit() {
   
   if (distance(state.exit, state.player) < 0.82 && (!allSeeds || !doorOpen) && sparkle - lastGateHint > 1.4) {
     lastGateHint = sparkle;
-    showToast(!allSeeds ? "月光门需要所有星种子才能打开。" : "门还需要要是。");
+    showToast(!allSeeds ? "大门需要集齐所有星光种子才能打开。" : "彩虹门需要钥匙。");
   }
   
   if (allSeeds && doorOpen && distance(state.exit, state.player) < 0.62) {
-    // Unlock sticker for this level
-    unlockSticker(levelIndex);
-    
     levelIndex += 1;
     if (levelIndex >= levels.length) {
       running = false;
       els.progress.style.width = "100%";
-      showOverlay("你完成了所有冒险！", "所有的星种子都在闪闪发光，月亮树被点亮了！", "再玩一次", "start");
+      els.overlayTitle.textContent = "你完成了所有冒险！";
+      els.overlayCopy.textContent = "所有的星光种子都在闪闪发光，月亮树被点亮了！";
+      els.start.textContent = "再玩一次";
+      overlayAction = "start";
+      els.overlay.classList.remove("hidden");
       return;
     }
     loadLevel(levelIndex);
@@ -458,16 +432,9 @@ function checkExit() {
 }
 
 function updateHud() {
-  els.level.textContent = levels[levelIndex]?.name || "完成";
   els.bonus.textContent = state.hasKey ? "钥匙已找到" : "寻找钥匙";
   els.time.textContent = `⏱ 时间 ${formatTime(runTime)}`;
-  
-  if (gameMode === "practice") {
-    els.hearts.textContent = "💖 无限";
-  } else {
-    els.hearts.textContent = "💖 " + "♡".repeat(hearts);
-  }
-  
+  els.hearts.textContent = "💖 " + "♡".repeat(hearts);
   els.progress.style.width = `${Math.round(progressPercent())}%`;
 }
 
@@ -475,14 +442,6 @@ function progressPercent() {
   if (!levels[levelIndex]) return 100;
   const seedProgress = state.totalSeeds ? state.seeds.filter((seed) => seed.collected).length / state.totalSeeds : 0;
   return ((levelIndex + seedProgress) / levels.length) * 100;
-}
-
-function showOverlay(title, copy, button, action = "start") {
-  els.overlayTitle.textContent = title;
-  els.overlayCopy.textContent = copy;
-  els.start.textContent = button;
-  overlayAction = action;
-  els.overlay.classList.remove("hidden");
 }
 
 function hideOverlay() {
@@ -506,29 +465,6 @@ function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-// --- Sticker System ---
-const stickerIds = ['moon', 'star', 'firefly', 'pond', 'mushroom', 'tree'];
-
-function unlockSticker(index) {
-    const id = stickerIds[index];
-    if (id && !ownedStickers.includes(id)) {
-        ownedStickers.push(id);
-        localStorage.setItem('iris_moon_stickers', JSON.stringify(ownedStickers));
-        showToast(`解锁了新贴纸！`, 2);
-    }
-    updateStickersUI();
-}
-
-function updateStickersUI() {
-    stickerIds.forEach(id => {
-        const el = document.getElementById(`sticker-${id}`);
-        if (el) {
-            if (ownedStickers.includes(id)) el.classList.remove('locked');
-            else el.classList.add('locked');
-        }
-    });
-}
-
 // --- Drawing Functions ---
 
 function draw() {
@@ -541,7 +477,6 @@ function draw() {
   drawHeartPickups();
   drawShadows();
   drawPlayer();
-  drawGuidance();
 }
 
 function drawGarden() {
@@ -575,7 +510,6 @@ function drawExit() {
   const y = state.exit.y * TILE;
   const allSeeds = state.seeds.every((seed) => seed.collected);
   
-  // Make gate brighter when unlocked
   ctx.fillStyle = allSeeds ? `rgba(255, 215, 105, ${0.5 + Math.sin(sparkle * 5) * 0.2})` : "rgba(120, 132, 150, 0.28)";
   ctx.beginPath();
   ctx.arc(x, y, 24, 0, Math.PI * 2);
@@ -601,7 +535,6 @@ function drawSeeds() {
     const x = seed.x * TILE;
     const y = seed.y * TILE + Math.sin(sparkle * 4 + seed.x) * 3;
     
-    // Draw star
     ctx.fillStyle = "#f2b83d";
     ctx.beginPath();
     ctx.arc(x, y, 8, 0, Math.PI * 2);
@@ -645,69 +578,13 @@ function drawPlayer() {
   const y = state.player.y * TILE;
   
   ctx.globalAlpha = state.player.invincible > 0 && Math.floor(sparkle * 12) % 2 === 0 ? 0.55 : 1;
-  
-  // Customization
-  if (currentCosmetic === "star-wings") ctx.fillStyle = "#ffd700";
-  else ctx.fillStyle = "#ff758c";
+  ctx.fillStyle = "#ff758c";
   
   ctx.beginPath();
   ctx.arc(x, y, 12, 0, Math.PI * 2);
   ctx.fill();
   
   ctx.globalAlpha = 1;
-}
-
-// --- Guidance ---
-function drawGuidance() {
-    const allSeeds = state.seeds.every(seed => seed.collected);
-    
-    if (!allSeeds) {
-        // Find nearest seed
-        let nearest = null;
-        let minDist = Infinity;
-        state.seeds.forEach(seed => {
-            if (!seed.collected) {
-                const d = distance(seed, state.player);
-                if (d < minDist) { minDist = d; nearest = seed; }
-            }
-        });
-        
-        if (nearest) {
-            // Draw pulse around nearest seed
-            const x = nearest.x * TILE;
-            const y = nearest.y * TILE;
-            ctx.strokeStyle = `rgba(255, 215, 105, ${0.5 + Math.sin(sparkle * 5) * 0.5})`;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(x, y, 15 + Math.sin(sparkle * 5) * 3, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-    } else {
-        // Draw arrow to gate
-        const x = state.exit.x * TILE;
-        const y = state.exit.y * TILE;
-        const px = state.player.x * TILE;
-        const py = state.player.y * TILE;
-        
-        const angle = Math.atan2(y - py, x - px);
-        
-        ctx.save();
-        ctx.translate(px, py);
-        ctx.rotate(angle);
-        ctx.fillStyle = "#ffd700";
-        ctx.beginPath();
-        ctx.moveTo(30, 0);
-        ctx.lineTo(20, -5);
-        ctx.lineTo(20, 5);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-        
-        // Label
-        ctx.fillStyle = "#ffd700";
-        ctx.font = "bold 14px sans-serif";
-        ctx.fillText("去月光门！", x - 30, y - 30);
-    }
 }
 
 // --- Event Listeners ---
@@ -724,62 +601,23 @@ window.addEventListener("keydown", (event) => {
 window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
 
 els.start.addEventListener("click", () => {
-  startGame();
+  if (overlayAction === "retry") {
+    levelIndex = 0; // Restart from level 1
+    startGame();
+  } else {
+    startGame();
+  }
 });
 
-// Mode Selection
-document.querySelectorAll(".btn-diff").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-        document.querySelectorAll(".btn-diff").forEach(b => b.classList.remove("active"));
-        e.target.classList.add("active");
-        gameMode = e.target.dataset.diff;
-    });
+els.restart.addEventListener("click", () => {
+    levelIndex = 0;
+    startGame();
 });
 
-// Treasure & Assist Panels
-els.treasure.addEventListener("click", () => { els.treasurePanel.classList.remove("hidden"); updateStickersUI(); });
-els.closeTreasure.addEventListener("click", () => els.treasurePanel.classList.add("hidden"));
-els.assist.addEventListener("click", () => els.assistPanel.classList.remove("hidden"));
-els.closeAssist.addEventListener("click", () => els.assistPanel.classList.add("hidden"));
-
-// Tabs
-document.getElementById("tab-stickers").addEventListener("click", () => {
-    document.getElementById("tab-stickers").classList.add("active");
-    document.getElementById("tab-cosmetics").classList.remove("active");
-    document.getElementById("stickers-content").style.display = "block";
-    document.getElementById("cosmetics-content").style.display = "none";
-});
-
-document.getElementById("tab-cosmetics").addEventListener("click", () => {
-    document.getElementById("tab-cosmetics").classList.add("active");
-    document.getElementById("tab-stickers").classList.remove("active");
-    document.getElementById("cosmetics-content").style.display = "block";
-    document.getElementById("stickers-content").style.display = "none";
-});
-
-// Cosmetics Buy/Use
-document.querySelectorAll(".cosmetic-item").forEach(item => {
-    const id = item.dataset.id;
-    const btn = item.querySelector(".btn-buy");
-    
-    if (unlockedCosmetics.includes(id)) {
-        btn.textContent = currentCosmetic === id ? "使用中" : "使用";
-    }
-    
-    btn.addEventListener("click", () => {
-        if (!unlockedCosmetics.includes(id)) {
-            unlockedCosmetics.push(id);
-            localStorage.setItem('iris_moon_cosmetics', JSON.stringify(unlockedCosmetics));
-            btn.textContent = "使用";
-        } else {
-            currentCosmetic = id;
-            localStorage.setItem('iris_moon_current_cosmetic', id);
-            document.querySelectorAll(".btn-buy").forEach(b => {
-                if (unlockedCosmetics.includes(b.parentElement.dataset.id)) b.textContent = "使用";
-            });
-            btn.textContent = "使用中";
-        }
-    });
+els.pause.addEventListener("click", () => {
+    if (!running) return;
+    paused = !paused;
+    els.pause.textContent = paused ? "继续" : "暂停";
 });
 
 // D-Pad
@@ -791,13 +629,10 @@ document.querySelectorAll(".pad button").forEach((button) => {
   button.addEventListener("pointerleave", () => keys.delete(key));
 });
 
-// Bot/Auto Play (Now in Assist Panel)
 els.bot.addEventListener("click", () => {
-    // Toggle bot
     if (typeof toggleBot === "function") toggleBot();
 });
 
 // Init
-updateStickersUI();
 loadLevel(0);
 draw();
