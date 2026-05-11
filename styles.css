@@ -180,7 +180,7 @@ canvas {
 }
 
 .overlay.hidden {
-  display: none;
+  display: none !important;
 }
 
 .overlay-panel {
@@ -218,7 +218,12 @@ canvas {
   text-align: center;
 }
 
-.controls > button {
+.control-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.controls button {
   background: var(--violet);
 }
 
@@ -276,4 +281,77 @@ canvas {
   .pad {
     align-self: center;
   }
+}
+
+/* --- Added for Child-Friendly Upgrade --- */
+
+.btn-primary {
+  background: var(--rose) !important;
+  color: white !important;
+  font-size: 1.1rem;
+  padding: 10px 20px;
+}
+
+.btn-secondary {
+  background: var(--muted) !important;
+  color: white !important;
+  font-size: 0.9rem;
+}
+
+.btn-diff {
+  background: white;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 5px 15px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn-diff.active {
+  background: var(--gold);
+  color: white;
+  border-color: var(--gold);
+}
+
+.btn-tab {
+  background: white;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.btn-tab.active {
+  background: var(--sky);
+  color: white;
+  border-color: var(--sky);
+  font-weight: 700;
+}
+
+.sticker {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 1.5rem;
+}
+
+.sticker.locked {
+  filter: grayscale(1);
+  opacity: 0.3;
+}
+
+.sticker-name {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.cosmetic-item span {
+  font-weight: 700;
 }

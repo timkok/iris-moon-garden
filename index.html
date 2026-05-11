@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Iris and the Moonlit Garden</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -11,15 +12,15 @@
     <section class="game-surface" aria-label="Iris and the Moonlit Garden">
       <div class="topbar">
         <div>
-          <h1>Iris and the Moonlit Garden</h1>
-          <p id="missionText">Collect star seeds and light up the garden.</p>
+          <h1>Iris 与月光花园</h1>
+          <p id="missionText">收集星种子，点亮花园。</p>
         </div>
         <div class="stats" aria-live="polite">
-          <span id="levelStat">Level 1</span>
-          <span id="seedStat">Seeds 0 / 0</span>
-          <span id="bonusStat">Moon path</span>
-          <span id="timeStat">Time 0:00</span>
-          <span id="heartStat">♡♡♡</span>
+          <span id="levelStat">🌙 第 1 关</span>
+          <span id="seedStat">⭐ 星种子 0 / 0</span>
+          <span id="bonusStat">月亮路径</span>
+          <span id="timeStat">⏱ 时间 0:00</span>
+          <span id="heartStat">💖 ♡♡♡</span>
         </div>
       </div>
 
@@ -30,21 +31,110 @@
       <div class="canvas-wrap">
         <canvas id="game" width="960" height="576"></canvas>
         <div id="toast" class="toast hidden" aria-live="polite"></div>
+        
+        <!-- Overlay for Start/Game Over -->
         <div id="overlay" class="overlay">
           <div class="overlay-panel">
-            <h2 id="overlayTitle">Ready, Iris?</h2>
-            <p id="overlayCopy">Guide Iris through six moonlit gardens. Collect every star seed, watch the shadows, and step into the glowing gate.</p>
-            <button id="startBtn" type="button">Start Game</button>
+            <h2 id="overlayTitle">准备好了吗，Iris？</h2>
+            <p id="overlayCopy">引导 Iris 穿过六个迷人的月光花园。收集每一个星种子，注意避开阴影，然后走进发光的月光门。</p>
+            
+            <!-- Difficulty Selection (Added) -->
+            <div class="difficulty-selection" style="margin: 15px 0;">
+              <p style="margin-bottom: 5px; color: #b3a5c4;">选择模式：</p>
+              <div class="btn-group" style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-diff active" data-diff="story">故事模式</button>
+                <button class="btn-diff" data-diff="practice">练习模式</button>
+                <button class="btn-diff" data-diff="challenge">挑战模式</button>
+              </div>
+            </div>
+
+            <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 200px; margin: 0 auto;">
+              <button id="startBtn" type="button" class="btn-primary" style="width: 100%;">开始游戏</button>
+              <button id="treasureBtn" type="button" class="btn-secondary" style="width: 100%;">星光宝藏</button>
+              <button id="assistBtn" type="button" class="btn-secondary" style="width: 100%;">辅助设置</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Treasure Panel (Hidden by default) -->
+        <div id="treasure-panel" class="overlay hidden">
+          <div class="overlay-panel">
+            <h2>星光宝藏</h2>
+            <div class="tabs" style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
+              <button id="tab-stickers" class="btn-tab active">贴纸收藏</button>
+              <button id="tab-cosmetics" class="btn-tab">魔法装扮</button>
+            </div>
+            
+            <!-- Stickers Content -->
+            <div id="stickers-content" class="tab-content active">
+              <div class="sticker-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div class="sticker locked" id="sticker-moon">🌙<span class="sticker-name">月亮</span></div>
+                <div class="sticker locked" id="sticker-star">⭐<span class="sticker-name">星种子</span></div>
+                <div class="sticker locked" id="sticker-firefly">🪰<span class="sticker-name">萤火虫</span></div>
+                <div class="sticker locked" id="sticker-pond">🌊<span class="sticker-name">蓝月池塘</span></div>
+                <div class="sticker locked" id="sticker-mushroom">🍄<span class="sticker-name">蘑菇</span></div>
+                <div class="sticker locked" id="sticker-tree">🌳<span class="sticker-name">月亮树</span></div>
+              </div>
+            </div>
+
+            <!-- Cosmetics Content -->
+            <div id="cosmetics-content" class="tab-content" style="display: none;">
+              <div class="cosmetics-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="cosmetic-item" data-id="star-wings" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                  <span>星光翅膀</span>
+                  <button class="btn-buy" style="background: #ffd700; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">解锁</button>
+                </div>
+                <div class="cosmetic-item" data-id="moon-clip" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                  <span>月亮发夹</span>
+                  <button class="btn-buy" style="background: #ffd700; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">解锁</button>
+                </div>
+              </div>
+            </div>
+
+            <button id="closeTreasureBtn" class="btn-primary" style="margin-top: 15px; width: 100px;">返回</button>
+          </div>
+        </div>
+
+        <!-- Assist Panel (Hidden by default) -->
+        <div id="assist-panel" class="overlay hidden">
+          <div class="overlay-panel">
+            <h2>辅助设置</h2>
+            <div class="settings-list" style="width: 100%; text-align: left; margin: 15px 0;">
+              <div class="setting-item" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Iris 速度：</span>
+                <select id="setting-speed" style="background: #2c3e50; color: white; border: 1px solid #455a64; border-radius: 5px; padding: 5px;">
+                  <option value="slow">慢</option>
+                  <option value="normal" selected>正常</option>
+                  <option value="fast">快</option>
+                </select>
+              </div>
+              <div class="setting-item" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>生命数量：</span>
+                <select id="setting-lives" style="background: #2c3e50; color: white; border: 1px solid #455a64; border-radius: 5px; padding: 5px;">
+                  <option value="3" selected>3</option>
+                  <option value="5">5</option>
+                  <option value="99">无限</option>
+                </select>
+              </div>
+              <div class="setting-item" style="display: flex; justify-content: space-between;">
+                <span>自动寻路 (帮我一下)：</span>
+                <button id="botBtn" type="button" style="background: #27ae60; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">开启</button>
+              </div>
+            </div>
+            <button id="closeAssistBtn" class="btn-primary" style="width: 100px;">返回</button>
           </div>
         </div>
       </div>
 
       <div class="controls">
-        <button id="restartBtn" type="button">Restart</button>
-        <button id="pauseBtn" type="button">Pause</button>
-        <button id="botBtn" type="button">🤖 Auto Play</button>
-        <p class="hint">Move with arrow keys or WASD. Space pauses. Blue ponds slow Iris down; pink hearts restore one life.</p>
-        <div class="pad" aria-label="Direction buttons">
+        <div class="control-buttons">
+          <button id="restartBtn" type="button">重新开始</button>
+          <button id="pauseBtn" type="button">暂停</button>
+        </div>
+        <p class="hint">使用方向键或 WASD 移动。空格键暂停。紫色泥潭会减慢 Iris 的速度；粉色爱心可以恢复生命。</p>
+        
+        <!-- Mobile D-Pad -->
+        <div class="pad" aria-label="方向键">
           <button data-dir="up" type="button">↑</button>
           <button data-dir="left" type="button">←</button>
           <button data-dir="down" type="button">↓</button>

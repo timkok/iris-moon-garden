@@ -16,10 +16,17 @@ const els = {
   restart: document.querySelector("#restartBtn"),
   pause: document.querySelector("#pauseBtn"),
   toast: document.querySelector("#toast"),
+  treasure: document.querySelector("#treasureBtn"),
+  treasurePanel: document.querySelector("#treasure-panel"),
+  closeTreasure: document.querySelector("#closeTreasureBtn"),
+  assist: document.querySelector("#assistBtn"),
+  assistPanel: document.querySelector("#assist-panel"),
+  closeAssist: document.querySelector("#closeAssistBtn"),
+  bot: document.querySelector("#botBtn"),
 };
 
 const TILE = 48;
-const MAX_HEARTS = 3;
+let MAX_HEARTS = 3;
 const BEST_TIME_KEY = "irisMoonGardenBestSeconds";
 const keys = new Set();
 let lastTime = 0;
@@ -35,10 +42,16 @@ let toastTimer = 0;
 let lastGateHint = 0;
 let overlayAction = "start";
 
+// --- New Features (Game Modes & Rewards) ---
+let gameMode = "story"; // story, practice, challenge
+let ownedStickers = JSON.parse(localStorage.getItem('iris_moon_stickers')) || [];
+let unlockedCosmetics = JSON.parse(localStorage.getItem('iris_moon_cosmetics')) || [];
+let currentCosmetic = localStorage.getItem('iris_moon_current_cosmetic') || null;
+
 const levels = [
   {
-    name: "Level 1-1",
-    mission: "Warm up in the seed path, then find the moon gate.",
+    name: "第 1 关: 月光小径",
+    mission: "在星种子路径中热身，然后找到月光门。",
     map: [
       "####################",
       "#I...*.......#.....#",
@@ -58,8 +71,8 @@ const levels = [
     ],
   },
   {
-    name: "Level 1-2",
-    mission: "Find the rainbow key before you pass the rainbow door.",
+    name: "第 2 关: 萤火虫草地",
+    mission: "在穿过彩虹门之前找到彩虹钥匙。",
     map: [
       "####################",
       "#I...#....*....#...#",
@@ -80,8 +93,8 @@ const levels = [
     ],
   },
   {
-    name: "Level 2-1",
-    mission: "Blue ponds slow Iris down, so cross them when the shadows are away.",
+    name: "第 3 关: 蓝月池塘",
+    mission: "蓝色泥潭会减慢 Iris 的速度，趁阴影离开时穿过它们。",
     map: [
       "####################",
       "#I..*....~~~~......#",
@@ -102,8 +115,8 @@ const levels = [
     ],
   },
   {
-    name: "Level 2-2",
-    mission: "Vertical shadows patrol the moon rows. Time your crossings.",
+    name: "第 4 关: 蘑菇林",
+    mission: "垂直移动的阴影在月亮行巡逻。看准时机穿过。",
     map: [
       "####################",
       "#I....#...*.....#..#",
@@ -125,8 +138,8 @@ const levels = [
     ],
   },
   {
-    name: "Level 3-1",
-    mission: "A heart blooms in the risky lane. Grab it if the garden gets tense.",
+    name: "第 5 关: 影子花园",
+    mission: "在危险的小道上开出一颗爱心。如果花园变得紧张，就抓住它。",
     map: [
       "####################",
       "#I..*....#....*....#",
@@ -148,8 +161,8 @@ const levels = [
     ],
   },
   {
-    name: "Level 3-2",
-    mission: "Final garden: collect the far seeds, open the door, and dodge every patrol.",
+    name: "第 6 关: 月亮树",
+    mission: "最后的月光花园：收集远处的种子，打开门，躲避每一次巡逻。",
     map: [
       "####################",
       "#I..*....#.....*...#",
@@ -189,6 +202,7 @@ const state = {
 
 function loadLevel(index) {
   const level = levels[index];
+  if (!level) return;
   state.seeds = [];
   state.walls = [];
   state.puddles = [];
@@ -218,12 +232,27 @@ function loadLevel(index) {
   state.player.invincible = 1;
   levelTime = 0;
   els.mission.textContent = level.mission;
+  
+  // HUD Fix: Ensure seeds show correct target on load
+  els.seeds.textContent = `⭐ 星种子 0 / ${state.totalSeeds}`;
+  
   showToast(`${level.name}: ${level.mission}`, 2.6);
   updateHud();
 }
 
 function startGame() {
-  hearts = MAX_HEARTS;
+  // Apply mode settings
+  if (gameMode === "practice") {
+    MAX_HEARTS = 99;
+    hearts = 99;
+  } else if (gameMode === "challenge") {
+    MAX_HEARTS = 1;
+    hearts = 1;
+  } else {
+    MAX_HEARTS = 3;
+    hearts = 3;
+  }
+
   levelIndex = 0;
   runTime = 0;
   levelTime = 0;
@@ -232,37 +261,7 @@ function startGame() {
   running = true;
   lastTime = 0;
   keys.clear();
-  els.pause.textContent = "Pause";
-  loadLevel(levelIndex);
-  hideOverlay();
-  requestAnimationFrame(loop);
-}
-
-function restartLevel() {
-  if (!running) {
-    if (overlayAction === "retry") retryCurrentLevel();
-    else startGame();
-    return;
-  }
-  hearts = MAX_HEARTS;
-  startedFromFirstLevel = false;
-  loadLevel(levelIndex);
-  hideOverlay();
-  paused = false;
-  keys.clear();
-  els.pause.textContent = "Pause";
-}
-
-function retryCurrentLevel() {
-  hearts = MAX_HEARTS;
-  runTime = 0;
-  levelTime = 0;
-  startedFromFirstLevel = levelIndex === 0;
-  paused = false;
-  running = true;
-  lastTime = 0;
-  keys.clear();
-  els.pause.textContent = "Pause";
+  els.pause.textContent = "暂停";
   loadLevel(levelIndex);
   hideOverlay();
   requestAnimationFrame(loop);
@@ -304,7 +303,10 @@ function movePlayer(dt) {
     dy *= Math.SQRT1_2;
   }
 
-  const speed = state.player.speed * currentSpeedMultiplier();
+  let speedMultiplier = currentSpeedMultiplier();
+  if (gameMode === "practice") speedMultiplier *= 1.2; // Move faster in practice
+  
+  const speed = state.player.speed * speedMultiplier;
   tryMove(dx * speed * dt, 0);
   tryMove(0, dy * speed * dt);
 }
@@ -351,7 +353,12 @@ function moveShadows(dt) {
     const axis = shadow.axis || "x";
     const min = axis === "x" ? shadow.minX : shadow.minY;
     const max = axis === "x" ? shadow.maxX : shadow.maxY;
-    shadow[axis] += shadow.dir * shadow.speed * dt;
+    
+    let speed = shadow.speed;
+    if (gameMode === "practice") speed *= 0.7; // Slower in practice
+    if (gameMode === "challenge") speed *= 1.3; // Faster in challenge
+
+    shadow[axis] += shadow.dir * speed * dt;
     if (shadow[axis] > max) {
       shadow[axis] = max;
       shadow.dir = -1;
@@ -367,33 +374,47 @@ function collectItems() {
   state.seeds.forEach((seed) => {
     if (!seed.collected && distance(seed, state.player) < 0.55) {
       seed.collected = true;
-      const left = state.seeds.filter((item) => !item.collected).length;
-      showToast(left === 0 ? "All star seeds collected! Find the glowing gate." : `${left} star seeds left.`);
+      const collectedCount = state.seeds.filter((item) => item.collected).length;
+      els.seeds.textContent = `⭐ 星种子 ${collectedCount} / ${state.totalSeeds}`;
+      
+      const left = state.totalSeeds - collectedCount;
+      if (left === 0) {
+        showToast("星种子收集完成！月光门打开啦！", 2);
+      } else {
+        showToast(`太棒了，Iris！还剩 ${left} 个。`);
+      }
     }
   });
+  
   if (state.key && !state.key.collected && distance(state.key, state.player) < 0.55) {
     state.key.collected = true;
     state.hasKey = true;
-    showToast("Rainbow key found. The door is open!");
+    showToast("彩虹钥匙找到了！");
   }
+  
   state.heartPickups.forEach((heart) => {
     if (heart.collected || distance(heart, state.player) >= 0.55) return;
     heart.collected = true;
     if (hearts < MAX_HEARTS) {
       hearts += 1;
-      showToast("Heart restored.");
-    } else {
-      showToast("Heart saved. Iris is already full of courage.");
+      showToast("生命恢复。");
     }
   });
 }
 
 function checkShadowHits() {
   if (state.player.invincible > 0) return;
-  const hit = state.shadows.some((shadow) => distance(shadow, state.player) < 0.62);
+  
+  let hitDist = 0.62;
+  if (gameMode === "practice") hitDist = 0.4; // More forgiving
+  
+  const hit = state.shadows.some((shadow) => distance(shadow, state.player) < hitDist);
   if (!hit) return;
+  
   hearts -= 1;
   state.player.invincible = 1.4;
+  
+  // Reset player to start of level
   const level = levels[levelIndex];
   level.map.forEach((row, y) => {
     [...row].forEach((cell, x) => {
@@ -403,27 +424,33 @@ function checkShadowHits() {
       }
     });
   });
-  showToast(hearts > 0 ? "Shadow touch! Back to the start." : "No hearts left.", 1.5);
+  
+  showToast(hearts > 0 ? "别担心，再试一次！" : "生命耗尽。", 1.5);
+  
   if (hearts <= 0) {
     running = false;
-    showOverlay("Try again, Iris", "The shadows follow a pattern. Watch their path, take a breath, and step out when the way is clear.", "Restart", "retry");
+    showOverlay("这次飞得很棒！", "再试一次，Iris 离月亮树更近啦。要不要用练习模式试一下？", "重新开始", "retry");
   }
 }
 
 function checkExit() {
   const allSeeds = state.seeds.every((seed) => seed.collected);
   const doorOpen = !state.door || state.hasKey;
+  
   if (distance(state.exit, state.player) < 0.82 && (!allSeeds || !doorOpen) && sparkle - lastGateHint > 1.4) {
     lastGateHint = sparkle;
-    showToast(!allSeeds ? "The gate needs every star seed first." : "The rainbow door needs its key.");
+    showToast(!allSeeds ? "月光门需要所有星种子才能打开。" : "门还需要要是。");
   }
+  
   if (allSeeds && doorOpen && distance(state.exit, state.player) < 0.62) {
-    showLevelClearToast();
+    // Unlock sticker for this level
+    unlockSticker(levelIndex);
+    
     levelIndex += 1;
     if (levelIndex >= levels.length) {
       running = false;
       els.progress.style.width = "100%";
-      showOverlay("Iris lit up the whole garden", completionCopy(), "Play Again", "start");
+      showOverlay("你完成了所有冒险！", "所有的星种子都在闪闪发光，月亮树被点亮了！", "再玩一次", "start");
       return;
     }
     loadLevel(levelIndex);
@@ -431,78 +458,82 @@ function checkExit() {
 }
 
 function updateHud() {
-  const collected = state.seeds.filter((seed) => seed.collected).length;
-  els.level.textContent = levels[levelIndex]?.name || "Complete";
-  els.seeds.textContent = `Seeds ${collected} / ${state.totalSeeds}`;
-  els.bonus.textContent = bonusStatus();
-  els.time.textContent = `Time ${formatTime(runTime)}`;
-  els.hearts.textContent = "♡".repeat(hearts);
+  els.level.textContent = levels[levelIndex]?.name || "完成";
+  els.bonus.textContent = state.hasKey ? "钥匙已找到" : "寻找钥匙";
+  els.time.textContent = `⏱ 时间 ${formatTime(runTime)}`;
+  
+  if (gameMode === "practice") {
+    els.hearts.textContent = "💖 无限";
+  } else {
+    els.hearts.textContent = "💖 " + "♡".repeat(hearts);
+  }
+  
   els.progress.style.width = `${Math.round(progressPercent())}%`;
-}
-
-function bonusStatus() {
-  if (!levels[levelIndex]) return "Garden complete";
-  if (state.door) return state.hasKey ? "Key found" : "Find key";
-  if (state.puddles.length) return "Ponds slow";
-  return "Moon path";
 }
 
 function progressPercent() {
   if (!levels[levelIndex]) return 100;
   const seedProgress = state.totalSeeds ? state.seeds.filter((seed) => seed.collected).length / state.totalSeeds : 0;
-  const keyProgress = state.door ? (state.hasKey ? 0.18 : 0) : 0.18;
-  const perLevel = Math.min(0.94, seedProgress * 0.76 + keyProgress);
-  return ((levelIndex + perLevel) / levels.length) * 100;
+  return ((levelIndex + seedProgress) / levels.length) * 100;
 }
 
-function showLevelClearToast() {
-  const next = levelIndex + 1;
-  if (next < levels.length) showToast(`${levels[levelIndex].name} clear in ${formatTime(levelTime)}.`, 2);
+function showOverlay(title, copy, button, action = "start") {
+  els.overlayTitle.textContent = title;
+  els.overlayCopy.textContent = copy;
+  els.start.textContent = button;
+  overlayAction = action;
+  els.overlay.classList.remove("hidden");
 }
 
-function completionCopy() {
-  const time = Math.max(1, Math.round(runTime));
-  const best = getBestTime();
-  let bestLine = `Finished in ${formatTime(time)}.`;
-  if (startedFromFirstLevel && (!best || time < best)) {
-    setBestTime(time);
-    bestLine = `New best time: ${formatTime(time)}.`;
-  } else if (best) {
-    bestLine += ` Best: ${formatTime(best)}.`;
-  }
-  return `Every star seed is shining again. ${bestLine}`;
+function hideOverlay() {
+  els.overlay.classList.add("hidden");
 }
 
-function getBestTime() {
-  const value = Number(safeStorageGet(BEST_TIME_KEY));
-  return Number.isFinite(value) && value > 0 ? value : null;
+function showToast(message, seconds = 1.7) {
+  els.toast.textContent = message;
+  els.toast.classList.remove("hidden");
+  toastTimer = seconds;
 }
 
-function setBestTime(seconds) {
-  safeStorageSet(BEST_TIME_KEY, String(seconds));
+function formatTime(seconds) {
+  const whole = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(whole / 60);
+  const secs = String(whole % 60).padStart(2, "0");
+  return `${mins}:${secs}`;
 }
 
-function safeStorageGet(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function safeStorageSet(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    return false;
-  }
-  return true;
+// --- Sticker System ---
+const stickerIds = ['moon', 'star', 'firefly', 'pond', 'mushroom', 'tree'];
+
+function unlockSticker(index) {
+    const id = stickerIds[index];
+    if (id && !ownedStickers.includes(id)) {
+        ownedStickers.push(id);
+        localStorage.setItem('iris_moon_stickers', JSON.stringify(ownedStickers));
+        showToast(`解锁了新贴纸！`, 2);
+    }
+    updateStickersUI();
 }
+
+function updateStickersUI() {
+    stickerIds.forEach(id => {
+        const el = document.getElementById(`sticker-${id}`);
+        if (el) {
+            if (ownedStickers.includes(id)) el.classList.remove('locked');
+            else el.classList.add('locked');
+        }
+    });
+}
+
+// --- Drawing Functions ---
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawGarden();
-  drawShadowRoutes();
   drawExit();
   drawDoor();
   drawSeeds();
@@ -510,6 +541,7 @@ function draw() {
   drawHeartPickups();
   drawShadows();
   drawPlayer();
+  drawGuidance();
 }
 
 function drawGarden() {
@@ -528,23 +560,13 @@ function drawGarden() {
   }
 
   state.walls.forEach((wall) => {
-    roundRect(wall.x * TILE + 4, wall.y * TILE + 4, TILE - 8, TILE - 8, 8, "#5f7f77");
-    roundRect(wall.x * TILE + 12, wall.y * TILE + 12, TILE - 24, TILE - 24, 6, "#7fa195");
+    ctx.fillStyle = "#5f7f77";
+    ctx.fillRect(wall.x * TILE + 4, wall.y * TILE + 4, TILE - 8, TILE - 8);
   });
 
   state.puddles.forEach((puddle) => {
-    const x = puddle.x * TILE;
-    const y = puddle.y * TILE;
     ctx.fillStyle = "rgba(67, 145, 190, 0.38)";
-    ctx.beginPath();
-    ctx.ellipse(x + TILE / 2, y + TILE / 2, 18, 13, Math.sin(sparkle + puddle.x) * 0.25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(245, 252, 255, 0.68)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(x + 18, y + 21, 7, 0.2, Math.PI * 1.2);
-    ctx.arc(x + 32, y + 28, 6, Math.PI * 1.1, Math.PI * 2.1);
-    ctx.stroke();
+    ctx.fillRect(puddle.x * TILE, puddle.y * TILE, TILE, TILE);
   });
 }
 
@@ -552,41 +574,25 @@ function drawExit() {
   const x = state.exit.x * TILE;
   const y = state.exit.y * TILE;
   const allSeeds = state.seeds.every((seed) => seed.collected);
-  const doorOpen = !state.door || state.hasKey;
-  const unlocked = allSeeds && doorOpen;
-  const pulse = 0.5 + Math.sin(sparkle * 5) * 0.08;
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = unlocked ? `rgba(255, 215, 105, ${pulse})` : "rgba(120, 132, 150, 0.28)";
+  
+  // Make gate brighter when unlocked
+  ctx.fillStyle = allSeeds ? `rgba(255, 215, 105, ${0.5 + Math.sin(sparkle * 5) * 0.2})` : "rgba(120, 132, 150, 0.28)";
   ctx.beginPath();
-  ctx.arc(0, 0, 24, 0, Math.PI * 2);
+  ctx.arc(x, y, 24, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = unlocked ? "#fff8c8" : "rgba(255, 255, 255, 0.56)";
+  
+  ctx.fillStyle = allSeeds ? "#fff8c8" : "rgba(255, 255, 255, 0.56)";
   ctx.beginPath();
-  ctx.arc(0, 0, 11, 0, Math.PI * 2);
+  ctx.arc(x, y, 11, 0, Math.PI * 2);
   ctx.fill();
-  if (!unlocked) {
-    ctx.strokeStyle = "rgba(70, 78, 96, 0.62)";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-9, -9);
-    ctx.lineTo(9, 9);
-    ctx.moveTo(9, -9);
-    ctx.lineTo(-9, 9);
-    ctx.stroke();
-  }
-  ctx.restore();
 }
 
 function drawDoor() {
   if (!state.door || state.hasKey) return;
   const x = state.door.x * TILE;
   const y = state.door.y * TILE;
-  roundRect(x + 7, y + 5, TILE - 14, TILE - 10, 8, "#7b5dc8");
-  ctx.fillStyle = "#f7d879";
-  ctx.beginPath();
-  ctx.arc(x + TILE / 2, y + TILE / 2, 5, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = "#7b5dc8";
+  ctx.fillRect(x + 5, y + 5, TILE - 10, TILE - 10);
 }
 
 function drawSeeds() {
@@ -594,7 +600,12 @@ function drawSeeds() {
     if (seed.collected) return;
     const x = seed.x * TILE;
     const y = seed.y * TILE + Math.sin(sparkle * 4 + seed.x) * 3;
-    drawStar(x, y, 12, "#f2b83d");
+    
+    // Draw star
+    ctx.fillStyle = "#f2b83d";
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
   });
 }
 
@@ -602,35 +613,19 @@ function drawKey() {
   if (!state.key || state.key.collected) return;
   const x = state.key.x * TILE;
   const y = state.key.y * TILE;
-  ctx.strokeStyle = "#c865a7";
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(x - 7, y, 8, 0, Math.PI * 2);
-  ctx.moveTo(x + 1, y);
-  ctx.lineTo(x + 18, y);
-  ctx.moveTo(x + 11, y);
-  ctx.lineTo(x + 11, y + 8);
-  ctx.stroke();
+  ctx.fillStyle = "#c865a7";
+  ctx.fillRect(x - 5, y - 5, 10, 10);
 }
 
 function drawHeartPickups() {
   state.heartPickups.forEach((heart) => {
     if (heart.collected) return;
     const x = heart.x * TILE;
-    const y = heart.y * TILE + Math.sin(sparkle * 5 + heart.x) * 2;
-    ctx.save();
-    ctx.translate(x, y);
+    const y = heart.y * TILE;
     ctx.fillStyle = "#d85f76";
     ctx.beginPath();
-    ctx.moveTo(0, 10);
-    ctx.bezierCurveTo(-22, -4, -12, -22, 0, -10);
-    ctx.bezierCurveTo(12, -22, 22, -4, 0, 10);
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    ctx.beginPath();
-    ctx.arc(-5, -8, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
   });
 }
 
@@ -640,123 +635,154 @@ function drawShadows() {
     const y = shadow.y * TILE;
     ctx.fillStyle = "rgba(62, 69, 94, 0.72)";
     ctx.beginPath();
-    ctx.ellipse(x, y, 20, 16, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#d7efff";
-    ctx.beginPath();
-    ctx.arc(x - 6, y - 3, 3, 0, Math.PI * 2);
-    ctx.arc(x + 6, y - 3, 3, 0, Math.PI * 2);
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
     ctx.fill();
   });
-}
-
-function drawShadowRoutes() {
-  ctx.save();
-  ctx.strokeStyle = "rgba(62, 69, 94, 0.22)";
-  ctx.lineWidth = 4;
-  ctx.setLineDash([8, 10]);
-  state.shadows.forEach((shadow) => {
-    ctx.beginPath();
-    if ((shadow.axis || "x") === "x") {
-      ctx.moveTo(shadow.minX * TILE, shadow.y * TILE);
-      ctx.lineTo(shadow.maxX * TILE, shadow.y * TILE);
-    } else {
-      ctx.moveTo(shadow.x * TILE, shadow.minY * TILE);
-      ctx.lineTo(shadow.x * TILE, shadow.maxY * TILE);
-    }
-    ctx.stroke();
-  });
-  ctx.restore();
 }
 
 function drawPlayer() {
   const x = state.player.x * TILE;
   const y = state.player.y * TILE;
-  ctx.save();
+  
   ctx.globalAlpha = state.player.invincible > 0 && Math.floor(sparkle * 12) % 2 === 0 ? 0.55 : 1;
-  ctx.fillStyle = "#2d6957";
+  
+  // Customization
+  if (currentCosmetic === "star-wings") ctx.fillStyle = "#ffd700";
+  else ctx.fillStyle = "#ff758c";
+  
   ctx.beginPath();
-  ctx.arc(x, y + 9, 13, 0, Math.PI * 2);
+  ctx.arc(x, y, 12, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#ffd8bd";
-  ctx.beginPath();
-  ctx.arc(x, y - 8, 13, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#493326";
-  ctx.beginPath();
-  ctx.arc(x - 7, y - 13, 7, 0, Math.PI * 2);
-  ctx.arc(x + 7, y - 13, 7, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#1e293b";
-  ctx.beginPath();
-  ctx.arc(x - 4, y - 9, 2, 0, Math.PI * 2);
-  ctx.arc(x + 4, y - 9, 2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(x - 16, y + 5);
-  ctx.lineTo(x - 25, y + 14);
-  ctx.moveTo(x + 16, y + 5);
-  ctx.lineTo(x + 25, y + 14);
-  ctx.stroke();
-  ctx.restore();
+  
+  ctx.globalAlpha = 1;
 }
 
-function drawStar(x, y, radius, color) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(sparkle);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  for (let i = 0; i < 10; i += 1) {
-    const r = i % 2 ? radius * 0.45 : radius;
-    const angle = -Math.PI / 2 + (i * Math.PI) / 5;
-    ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+// --- Guidance ---
+function drawGuidance() {
+    const allSeeds = state.seeds.every(seed => seed.collected);
+    
+    if (!allSeeds) {
+        // Find nearest seed
+        let nearest = null;
+        let minDist = Infinity;
+        state.seeds.forEach(seed => {
+            if (!seed.collected) {
+                const d = distance(seed, state.player);
+                if (d < minDist) { minDist = d; nearest = seed; }
+            }
+        });
+        
+        if (nearest) {
+            // Draw pulse around nearest seed
+            const x = nearest.x * TILE;
+            const y = nearest.y * TILE;
+            ctx.strokeStyle = `rgba(255, 215, 105, ${0.5 + Math.sin(sparkle * 5) * 0.5})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, 15 + Math.sin(sparkle * 5) * 3, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    } else {
+        // Draw arrow to gate
+        const x = state.exit.x * TILE;
+        const y = state.exit.y * TILE;
+        const px = state.player.x * TILE;
+        const py = state.player.y * TILE;
+        
+        const angle = Math.atan2(y - py, x - px);
+        
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle);
+        ctx.fillStyle = "#ffd700";
+        ctx.beginPath();
+        ctx.moveTo(30, 0);
+        ctx.lineTo(20, -5);
+        ctx.lineTo(20, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        
+        // Label
+        ctx.fillStyle = "#ffd700";
+        ctx.font = "bold 14px sans-serif";
+        ctx.fillText("去月光门！", x - 30, y - 30);
+    }
 }
 
-function roundRect(x, y, w, h, r, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  ctx.fill();
-}
-
-function distance(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function showOverlay(title, copy, button, action = "start") {
-  els.overlayTitle.textContent = title;
-  els.overlayCopy.textContent = copy;
-  els.start.textContent = button;
-  overlayAction = action;
-  els.overlay.classList.remove("hidden");
-}
-
-function hideOverlay() {
-  els.overlay.classList.add("hidden");
-}
+// --- Event Listeners ---
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
-  if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "s", "d", "w"].includes(key)) {
-    event.preventDefault();
-    keys.add(key);
-  }
+  keys.add(key);
   if (key === " " && running) {
     paused = !paused;
-    els.pause.textContent = paused ? "Resume" : "Pause";
-    showToast(paused ? "Paused" : "Back to the garden");
+    els.pause.textContent = paused ? "继续" : "暂停";
   }
 });
 
 window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
 
+els.start.addEventListener("click", () => {
+  startGame();
+});
+
+// Mode Selection
+document.querySelectorAll(".btn-diff").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".btn-diff").forEach(b => b.classList.remove("active"));
+        e.target.classList.add("active");
+        gameMode = e.target.dataset.diff;
+    });
+});
+
+// Treasure & Assist Panels
+els.treasure.addEventListener("click", () => { els.treasurePanel.classList.remove("hidden"); updateStickersUI(); });
+els.closeTreasure.addEventListener("click", () => els.treasurePanel.classList.add("hidden"));
+els.assist.addEventListener("click", () => els.assistPanel.classList.remove("hidden"));
+els.closeAssist.addEventListener("click", () => els.assistPanel.classList.add("hidden"));
+
+// Tabs
+document.getElementById("tab-stickers").addEventListener("click", () => {
+    document.getElementById("tab-stickers").classList.add("active");
+    document.getElementById("tab-cosmetics").classList.remove("active");
+    document.getElementById("stickers-content").style.display = "block";
+    document.getElementById("cosmetics-content").style.display = "none";
+});
+
+document.getElementById("tab-cosmetics").addEventListener("click", () => {
+    document.getElementById("tab-cosmetics").classList.add("active");
+    document.getElementById("tab-stickers").classList.remove("active");
+    document.getElementById("cosmetics-content").style.display = "block";
+    document.getElementById("stickers-content").style.display = "none";
+});
+
+// Cosmetics Buy/Use
+document.querySelectorAll(".cosmetic-item").forEach(item => {
+    const id = item.dataset.id;
+    const btn = item.querySelector(".btn-buy");
+    
+    if (unlockedCosmetics.includes(id)) {
+        btn.textContent = currentCosmetic === id ? "使用中" : "使用";
+    }
+    
+    btn.addEventListener("click", () => {
+        if (!unlockedCosmetics.includes(id)) {
+            unlockedCosmetics.push(id);
+            localStorage.setItem('iris_moon_cosmetics', JSON.stringify(unlockedCosmetics));
+            btn.textContent = "使用";
+        } else {
+            currentCosmetic = id;
+            localStorage.setItem('iris_moon_current_cosmetic', id);
+            document.querySelectorAll(".btn-buy").forEach(b => {
+                if (unlockedCosmetics.includes(b.parentElement.dataset.id)) b.textContent = "使用";
+            });
+            btn.textContent = "使用中";
+        }
+    });
+});
+
+// D-Pad
 document.querySelectorAll(".pad button").forEach((button) => {
   const map = { up: "arrowup", down: "arrowdown", left: "arrowleft", right: "arrowright" };
   const key = map[button.dataset.dir];
@@ -765,30 +791,13 @@ document.querySelectorAll(".pad button").forEach((button) => {
   button.addEventListener("pointerleave", () => keys.delete(key));
 });
 
-els.start.addEventListener("click", () => {
-  if (overlayAction === "retry") retryCurrentLevel();
-  else startGame();
-});
-els.restart.addEventListener("click", restartLevel);
-els.pause.addEventListener("click", () => {
-  if (!running) return;
-  paused = !paused;
-  els.pause.textContent = paused ? "Resume" : "Pause";
-  showToast(paused ? "Paused" : "Back to the garden");
+// Bot/Auto Play (Now in Assist Panel)
+els.bot.addEventListener("click", () => {
+    // Toggle bot
+    if (typeof toggleBot === "function") toggleBot();
 });
 
-function showToast(message, seconds = 1.7) {
-  els.toast.textContent = message;
-  els.toast.classList.remove("hidden");
-  toastTimer = seconds;
-}
-
-function formatTime(seconds) {
-  const whole = Math.max(0, Math.floor(seconds));
-  const mins = Math.floor(whole / 60);
-  const secs = String(whole % 60).padStart(2, "0");
-  return `${mins}:${secs}`;
-}
-
+// Init
+updateStickersUI();
 loadLevel(0);
 draw();
