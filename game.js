@@ -16,12 +16,22 @@ const els = {
   restart: document.querySelector("#restartBtn"),
   pause: document.querySelector("#pauseBtn"),
   toast: document.querySelector("#toast"),
-  bot: document.querySelector("#botBtn"),
+  help: document.querySelector("#helpBtn"),
+  hud: document.querySelector("#hud"),
+  progressBar: document.querySelector("#progressBar"),
+  cozyToggle: document.querySelector("#cozyToggle"),
+  completeOverlay: document.querySelector("#complete-overlay"),
+  completeStats: document.querySelector("#complete-stats"),
+  nextLevel: document.querySelector("#nextLevelBtn"),
+  stickerBook: document.querySelector("#stickerBookBtn"),
+  stickerPanel: document.querySelector("#sticker-panel"),
+  closeSticker: document.querySelector("#closeStickerBtn"),
+  stickerMsg: document.querySelector("#sticker-unlocked-msg"),
+  muteBtn: document.querySelector("#muteBtn"),
 };
 
 const TILE = 48;
-const MAX_HEARTS = 3;
-const BEST_TIME_KEY = "irisMoonGardenBestSeconds";
+let MAX_HEARTS = 3;
 const keys = new Set();
 let lastTime = 0;
 let running = false;
@@ -30,16 +40,21 @@ let levelIndex = 0;
 let hearts = 3;
 let runTime = 0;
 let levelTime = 0;
-let startedFromFirstLevel = true;
 let sparkle = 0;
 let toastTimer = 0;
-let lastGateHint = 0;
 let overlayAction = "start";
+
+// --- New Features ---
+let cozyMode = true;
+let muted = false;
+let ownedStickers = JSON.parse(localStorage.getItem('iris_moon_stickers')) || [];
+let showHintPath = false;
+let livesLostThisLevel = 0;
 
 const levels = [
   {
-    name: "第 1 关：月光小径",
-    mission: "收集所有星光种子，然后走进发光的月光门。",
+    name: "第 1 关：唤醒沉睡的花朵",
+    mission: "收集所有星光种子，然后走进发光的月光门。本关没有敌人哦！",
     map: [
       "####################",
       "#I...*.......#.....#",
@@ -54,19 +69,18 @@ const levels = [
       "#..................#",
       "####################",
     ],
-    shadows: [
-      { x: 13.5, y: 1.5, minX: 12.5, maxX: 17.5, speed: 1.2 },
-    ],
+    shadows: [], // No enemies
+    hiddenFlower: { x: 5.5, y: 3.5, found: false, sticker: 'cat' },
   },
   {
-    name: "第 2 关：萤火虫草地",
-    mission: "在穿过彩虹门之前找到彩虹钥匙。",
+    name: "第 2 关：穿过迷雾池塘",
+    mission: "蓝色泥潭会减慢 Iris 的速度，看准时机穿过它们。",
     map: [
       "####################",
       "#I...#....*....#...#",
       "#.##.#.######..#.#.#",
-      "#..*...#....#....#.#",
-      "####.#.#.K..####.#.#",
+      "#..*...#~~~~#....#.#",
+      "####.#.#~~~~####.#.#",
       "#....#...#....D..#.#",
       "#.######.#.#####...#",
       "#.*......#.....*...#",
@@ -75,14 +89,12 @@ const levels = [
       "#..................#",
       "####################",
     ],
-    shadows: [
-      { x: 6.5, y: 3.5, minX: 2.5, maxX: 6.5, speed: 1.4 },
-      { x: 14.5, y: 6.5, minX: 11.5, maxX: 17.5, speed: 1.6 },
-    ],
+    shadows: [], // Still no shadows, just introduced ponds
+    hiddenFlower: { x: 14.5, y: 1.5, found: false, sticker: 'bunny' },
   },
   {
-    name: "第 3 关：蓝月池塘",
-    mission: "蓝色泥潭会减慢 Iris 的速度，趁阴影离开时穿过它们。",
+    name: "第 3 关：避开跳舞的阴影",
+    mission: "本关引入了一个缓慢移动的阴影，小心避开它！",
     map: [
       "####################",
       "#I..*....~~~~......#",
@@ -98,13 +110,13 @@ const levels = [
       "####################",
     ],
     shadows: [
-      { x: 12.5, y: 1.5, minX: 9.5, maxX: 17.5, speed: 1.45 },
-      { x: 14.5, y: 7.5, minX: 12.5, maxX: 17.5, speed: 1.35 },
+      { x: 12.5, y: 1.5, minX: 9.5, maxX: 17.5, speed: 1.0 }, // Only one slow shadow
     ],
+    hiddenFlower: { x: 1.5, y: 10.5, found: false, sticker: 'owl' },
   },
   {
-    name: "第 4 关：蘑菇林",
-    mission: "垂直移动的阴影在月亮行巡逻。看准时机穿过。",
+    name: "第 4 关：寻找隐藏的爱心",
+    mission: "本关增加了一个隐藏的爱心，可以恢复生命哦。",
     map: [
       "####################",
       "#I....#...*.....#..#",
@@ -116,18 +128,18 @@ const levels = [
       "#.#.....K.#....D...#",
       "#.#####.#####.####.#",
       "#....*.........*E..#",
-      "#..................#",
+      "#..H...............#",
       "####################",
     ],
     shadows: [
-      { x: 3.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.35, axis: "y" },
-      { x: 12.5, y: 5.5, minY: 3.5, maxY: 9.5, speed: 1.55, axis: "y" },
-      { x: 16.5, y: 9.5, minX: 13.5, maxX: 18.5, speed: 1.25 },
+      { x: 3.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.2, axis: "y" },
+      { x: 12.5, y: 5.5, minY: 3.5, maxY: 9.5, speed: 1.2, axis: "y" },
     ],
+    hiddenFlower: { x: 16.5, y: 1.5, found: false, sticker: 'fox' },
   },
   {
-    name: "第 5 关：影子花园",
-    mission: "在危险的小道上开出一颗爱心。如果花园变得紧张，就抓住它。",
+    name: "第 5 关：点亮月亮桥",
+    mission: "路线更复杂了，但依然要保持耐心。",
     map: [
       "####################",
       "#I..*....#....*....#",
@@ -143,14 +155,15 @@ const levels = [
       "####################",
     ],
     shadows: [
-      { x: 6.5, y: 5.5, minX: 1.5, maxX: 8.5, speed: 1.6 },
-      { x: 12.5, y: 9.5, minX: 7.5, maxX: 16.5, speed: 1.75 },
-      { x: 18.5, y: 4.5, minY: 1.5, maxY: 8.5, speed: 1.3, axis: "y" },
+      { x: 6.5, y: 5.5, minX: 1.5, maxX: 8.5, speed: 1.5 },
+      { x: 12.5, y: 9.5, minX: 7.5, maxX: 16.5, speed: 1.5 },
+      { x: 18.5, y: 4.5, minY: 1.5, maxY: 8.5, speed: 1.2, axis: "y" },
     ],
+    hiddenFlower: { x: 1.5, y: 7.5, found: false, sticker: 'frog' },
   },
   {
-    name: "第 6 关：月亮树",
-    mission: "最后的月光花园：收集远处的种子，打开门，躲避每一次巡逻。",
+    name: "第 6 关：打开最后的月光门",
+    mission: "终极挑战！收集所有种子并安全到达终点吧！",
     map: [
       "####################",
       "#I..*....#.....*...#",
@@ -166,11 +179,12 @@ const levels = [
       "####################",
     ],
     shadows: [
-      { x: 4.5, y: 3.5, minX: 1.5, maxX: 5.5, speed: 1.7 },
-      { x: 9.5, y: 7.5, minX: 6.5, maxX: 11.5, speed: 1.35 },
-      { x: 15.5, y: 1.5, minX: 12.5, maxX: 18.5, speed: 1.9 },
-      { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 1.45, axis: "y" },
+      { x: 4.5, y: 3.5, minX: 1.5, maxX: 5.5, speed: 1.5 },
+      { x: 9.5, y: 7.5, minX: 6.5, maxX: 11.5, speed: 1.2 },
+      { x: 15.5, y: 1.5, minX: 12.5, maxX: 18.5, speed: 1.7 },
+      { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 1.3, axis: "y" },
     ],
+    hiddenFlower: { x: 11.5, y: 1.5, found: false, sticker: 'dragon' },
   },
 ];
 
@@ -219,30 +233,34 @@ function loadLevel(index) {
   state.totalSeeds = state.seeds.length;
   state.player.invincible = 1;
   levelTime = 0;
+  livesLostThisLevel = 0;
   els.mission.textContent = level.mission;
   
   // HUD Fix
   els.level.textContent = `🌙 ${level.name}`;
   els.seeds.textContent = `⭐ 星种子：0 / ${state.totalSeeds}`;
   
-  // Update overlay for next level or retry
-  els.overlayTitle.textContent = "准备好了吗，Iris？";
-  els.overlayCopy.textContent = `${level.name}。${level.mission}`;
-  
   updateHud();
 }
 
 function startGame() {
+  cozyMode = els.cozyToggle.checked;
+  MAX_HEARTS = cozyMode ? 5 : 3;
   hearts = MAX_HEARTS;
+  
   levelIndex = 0;
   runTime = 0;
   levelTime = 0;
-  startedFromFirstLevel = true;
   paused = false;
   running = true;
   lastTime = 0;
   keys.clear();
   els.pause.textContent = "暂停";
+  
+  // Show HUD
+  els.hud.classList.remove("hidden");
+  els.progressBar.classList.remove("hidden");
+  
   loadLevel(levelIndex);
   hideOverlay();
   requestAnimationFrame(loop);
@@ -263,6 +281,7 @@ function update(dt) {
   toastTimer = Math.max(0, toastTimer - dt);
   if (toastTimer === 0) els.toast.classList.add("hidden");
   state.player.invincible = Math.max(0, state.player.invincible - dt);
+  
   movePlayer(dt);
   moveShadows(dt);
   collectItems();
@@ -284,7 +303,8 @@ function movePlayer(dt) {
     dy *= Math.SQRT1_2;
   }
 
-  const speed = state.player.speed;
+  let speedMultiplier = currentSpeedMultiplier();
+  const speed = state.player.speed * speedMultiplier;
   tryMove(dx * speed * dt, 0);
   tryMove(0, dy * speed * dt);
 }
@@ -331,7 +351,11 @@ function moveShadows(dt) {
     const axis = shadow.axis || "x";
     const min = axis === "x" ? shadow.minX : shadow.minY;
     const max = axis === "x" ? shadow.maxX : shadow.maxY;
-    shadow[axis] += shadow.dir * shadow.speed * dt;
+    
+    let speed = shadow.speed;
+    if (cozyMode) speed *= 0.7; // 30% slower in Cozy Mode
+
+    shadow[axis] += shadow.dir * speed * dt;
     if (shadow[axis] > max) {
       shadow[axis] = max;
       shadow.dir = -1;
@@ -350,14 +374,22 @@ function collectItems() {
       const collectedCount = state.seeds.filter((item) => item.collected).length;
       els.seeds.textContent = `⭐ 星种子：${collectedCount} / ${state.totalSeeds}`;
       
+      playDing();
+      
       const left = state.totalSeeds - collectedCount;
       if (left === 0) {
         showToast("星光种子收集完成！月光门打开啦！", 2);
-      } else {
-        showToast(`太棒了，Iris！还剩 ${left} 个。`);
       }
     }
   });
+  
+  // Hidden Flower
+  const level = levels[levelIndex];
+  if (level.hiddenFlower && !level.hiddenFlower.found && distance(level.hiddenFlower, state.player) < 0.55) {
+      level.hiddenFlower.found = true;
+      showToast("你找到了隐藏的月亮花！", 2);
+      unlockSticker(level.hiddenFlower.sticker);
+  }
   
   if (state.key && !state.key.collected && distance(state.key, state.player) < 0.55) {
     state.key.collected = true;
@@ -370,7 +402,7 @@ function collectItems() {
     heart.collected = true;
     if (hearts < MAX_HEARTS) {
       hearts += 1;
-      showToast("生命恢复。");
+      createFloatingText("+1 ❤️", state.player.x, state.player.y);
     }
   });
 }
@@ -381,7 +413,10 @@ function checkShadowHits() {
   if (!hit) return;
   
   hearts -= 1;
-  state.player.invincible = 1.4;
+  livesLostThisLevel++;
+  state.player.invincible = 2.0; // 2 seconds of invincibility
+  
+  // Screen shake (visual effect handled by Canvas or CSS, here we just do a gentle flash or reset)
   
   // Reset player to start of level
   const level = levels[levelIndex];
@@ -397,12 +432,15 @@ function checkShadowHits() {
   showToast(hearts > 0 ? "别担心，再试一次！" : "生命耗尽。", 1.5);
   
   if (hearts <= 0) {
-    running = false;
-    els.overlayTitle.textContent = "这次飞得很棒！";
-    els.overlayCopy.textContent = "再试一次，Iris 离月亮树更近啦。";
-    els.start.textContent = "重新开始";
-    overlayAction = "retry";
-    els.overlay.classList.remove("hidden");
+      if (cozyMode) {
+          // Restart ONLY current level in Cozy Mode
+          hearts = MAX_HEARTS;
+          loadLevel(levelIndex);
+          showToast("再试一次，Iris 离月亮树更近啦。");
+      } else {
+          running = false;
+          showOverlay("这次飞得很棒！", "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？", "重新开始", "retry");
+      }
   }
 }
 
@@ -410,26 +448,50 @@ function checkExit() {
   const allSeeds = state.seeds.every((seed) => seed.collected);
   const doorOpen = !state.door || state.hasKey;
   
-  if (distance(state.exit, state.player) < 0.82 && (!allSeeds || !doorOpen) && sparkle - lastGateHint > 1.4) {
-    lastGateHint = sparkle;
-    showToast(!allSeeds ? "大门需要集齐所有星光种子才能打开。" : "彩虹门需要钥匙。");
-  }
-  
   if (allSeeds && doorOpen && distance(state.exit, state.player) < 0.62) {
-    levelIndex += 1;
-    if (levelIndex >= levels.length) {
-      running = false;
-      els.progress.style.width = "100%";
-      els.overlayTitle.textContent = "你完成了所有冒险！";
-      els.overlayCopy.textContent = "所有的星光种子都在闪闪发光，月亮树被点亮了！";
-      els.start.textContent = "再玩一次";
-      overlayAction = "start";
-      els.overlay.classList.remove("hidden");
-      return;
-    }
-    loadLevel(levelIndex);
+    running = false;
+    showLevelCompleteScreen();
   }
 }
+
+function showLevelCompleteScreen() {
+    const level = levels[levelIndex];
+    let stars = 0;
+    const allSeeds = state.seeds.every(s => s.collected);
+    if (allSeeds) stars++;
+    if (livesLostThisLevel === 0) stars++;
+    if (level.hiddenFlower && level.hiddenFlower.found) stars++;
+    
+    let starsStr = "⭐".repeat(stars) + "☆".repeat(3 - stars);
+    
+    document.querySelector(".stars-display").textContent = starsStr;
+    els.completeStats.textContent = `种子: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | 时间: ${formatTime(levelTime)} | 扣血: ${livesLostThisLevel}`;
+    
+    if (level.hiddenFlower && level.hiddenFlower.found) {
+        els.stickerMsg.textContent = `恭喜解锁新贴纸：${getStickerName(level.hiddenFlower.sticker)}！`;
+    } else {
+        els.stickerMsg.textContent = "";
+    }
+    
+    els.completeOverlay.classList.remove("hidden");
+}
+
+function getStickerName(id) {
+    const names = { 'cat': '月亮猫', 'bunny': '星光兔', 'owl': '瞌睡鸮', 'fox': '水晶狐', 'frog': '发光蛙', 'dragon': '小飞龙' };
+    return names[id] || id;
+}
+
+els.nextLevel.addEventListener("click", () => {
+    els.completeOverlay.classList.add("hidden");
+    levelIndex++;
+    if (levelIndex >= levels.length) {
+        showOverlay("大功告成！", "月光花园再次闪耀！你收集了所有的种子和贴纸。", "再玩一次", "start");
+        return;
+    }
+    loadLevel(levelIndex);
+    running = true;
+    requestAnimationFrame(loop);
+});
 
 function updateHud() {
   els.bonus.textContent = state.hasKey ? "钥匙已找到" : "寻找钥匙";
@@ -442,6 +504,14 @@ function progressPercent() {
   if (!levels[levelIndex]) return 100;
   const seedProgress = state.totalSeeds ? state.seeds.filter((seed) => seed.collected).length / state.totalSeeds : 0;
   return ((levelIndex + seedProgress) / levels.length) * 100;
+}
+
+function showOverlay(title, copy, button, action = "start") {
+  els.overlayTitle.textContent = title;
+  els.overlayCopy.textContent = copy;
+  els.start.textContent = button;
+  overlayAction = action;
+  els.overlay.classList.remove("hidden");
 }
 
 function hideOverlay() {
@@ -465,6 +535,45 @@ function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+// --- Sticker System ---
+function unlockSticker(id) {
+    if (!ownedStickers.includes(id)) {
+        ownedStickers.push(id);
+        localStorage.setItem('iris_moon_stickers', JSON.stringify(ownedStickers));
+    }
+    updateStickersUI();
+}
+
+function updateStickersUI() {
+    ['cat', 'bunny', 'owl', 'fox', 'frog', 'dragon'].forEach(id => {
+        const el = document.getElementById(`st-${id}`);
+        if (el) {
+            if (ownedStickers.includes(id)) el.classList.remove('locked');
+            else el.classList.add('locked');
+        }
+    });
+}
+
+// --- Audio & Effects (Faked with visuals or Web Audio if simple) ---
+function playDing() {
+    if (muted) return;
+    // Faking it with a visual effect in Canvas for now (sparkle)
+}
+
+function createFloatingText(text, x, y) {
+    const el = document.createElement('div');
+    el.className = 'floating-text';
+    el.textContent = text;
+    // Map canvas coordinates to screen coordinates if needed, but here we just append to a container
+    const container = document.getElementById('floating-text-container');
+    if (container) {
+        el.style.left = `${x * TILE}px`;
+        el.style.top = `${y * TILE}px`;
+        container.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+}
+
 // --- Drawing Functions ---
 
 function draw() {
@@ -475,8 +584,10 @@ function draw() {
   drawSeeds();
   drawKey();
   drawHeartPickups();
+  drawHiddenFlower();
   drawShadows();
   drawPlayer();
+  drawHintPath();
 }
 
 function drawGarden() {
@@ -562,6 +673,22 @@ function drawHeartPickups() {
   });
 }
 
+function drawHiddenFlower() {
+    const level = levels[levelIndex];
+    if (level.hiddenFlower && !level.hiddenFlower.found) {
+        const x = level.hiddenFlower.x * TILE;
+        const y = level.hiddenFlower.y * TILE;
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffd700";
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 function drawShadows() {
   state.shadows.forEach((shadow) => {
     const x = shadow.x * TILE;
@@ -587,6 +714,31 @@ function drawPlayer() {
   ctx.globalAlpha = 1;
 }
 
+function drawHintPath() {
+    if (!showHintPath) return;
+    
+    // Find nearest seed
+    let nearest = null;
+    let minDist = Infinity;
+    state.seeds.forEach(seed => {
+        if (!seed.collected) {
+            const d = distance(seed, state.player);
+            if (d < minDist) { minDist = d; nearest = seed; }
+        }
+    });
+    
+    if (nearest) {
+        ctx.strokeStyle = "rgba(255, 215, 105, 0.5)";
+        ctx.lineWidth = 4;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(state.player.x * TILE, state.player.y * TILE);
+        ctx.lineTo(nearest.x * TILE, nearest.y * TILE);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+}
+
 // --- Event Listeners ---
 
 window.addEventListener("keydown", (event) => {
@@ -602,7 +754,7 @@ window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase())
 
 els.start.addEventListener("click", () => {
   if (overlayAction === "retry") {
-    levelIndex = 0; // Restart from level 1
+    levelIndex = 0;
     startGame();
   } else {
     startGame();
@@ -620,6 +772,25 @@ els.pause.addEventListener("click", () => {
     els.pause.textContent = paused ? "继续" : "暂停";
 });
 
+els.help.addEventListener("click", () => {
+    showHintPath = !showHintPath;
+    els.help.textContent = showHintPath ? "隐藏指引" : "帮我一下";
+});
+
+els.stickerBook.addEventListener("click", () => {
+    els.stickerPanel.classList.remove("hidden");
+    updateStickersUI();
+});
+
+els.closeSticker.addEventListener("click", () => {
+    els.stickerPanel.classList.add("hidden");
+});
+
+els.muteBtn.addEventListener("click", () => {
+    muted = !muted;
+    els.muteBtn.textContent = muted ? "🔇" : "🔊";
+});
+
 // D-Pad
 document.querySelectorAll(".pad button").forEach((button) => {
   const map = { up: "arrowup", down: "arrowdown", left: "arrowleft", right: "arrowright" };
@@ -629,10 +800,6 @@ document.querySelectorAll(".pad button").forEach((button) => {
   button.addEventListener("pointerleave", () => keys.delete(key));
 });
 
-els.bot.addEventListener("click", () => {
-    if (typeof toggleBot === "function") toggleBot();
-});
-
 // Init
-loadLevel(0);
+updateStickersUI();
 draw();

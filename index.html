@@ -4,37 +4,82 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Iris and the Moonlit Garden</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <main class="shell">
     <section class="game-surface" aria-label="Iris and the Moonlit Garden">
-      <div class="topbar">
+      <!-- HUD (Hidden initially) -->
+      <div class="topbar hidden" id="hud">
         <div>
           <h1>Iris 与月光花园</h1>
           <p id="missionText">收集星光种子，点亮月光花园。</p>
         </div>
         <div class="stats" aria-live="polite">
-          <span id="levelStat">🌙 第 1 关：月光小径</span>
-          <span id="seedStat">⭐ 星种子：0 / 8</span>
-          <span id="bonusStat">月亮路径</span>
+          <span id="levelStat">🌙 第 1 关</span>
+          <span id="seedStat">⭐ 星种子：0 / 0</span>
+          <span id="bonusStat">寻找钥匙</span>
           <span id="timeStat">⏱ 时间 0:00</span>
           <span id="heartStat">💖 ♡♡♡</span>
         </div>
+        <button id="muteBtn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; box-shadow:none;">🔊</button>
       </div>
 
-      <div class="progress" aria-hidden="true">
+      <div class="progress hidden" id="progressBar" aria-hidden="true">
         <div id="progressFill" class="progress-fill"></div>
       </div>
 
       <div class="canvas-wrap">
         <canvas id="game" width="960" height="576"></canvas>
         <div id="toast" class="toast hidden" aria-live="polite"></div>
+        
+        <!-- Start / Title Overlay -->
         <div id="overlay" class="overlay">
           <div class="overlay-panel">
-            <h2 id="overlayTitle">准备好了吗，Iris？</h2>
-            <p id="overlayCopy">第 1 关：月光小径。收集所有星光种子，然后走进发光的月光门。</p>
-            <button id="startBtn" type="button">开始冒险</button>
+            <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: #7b5dc8;">月光花园</h1>
+            <p id="overlayCopy">月光花园变暗了。Iris 需要收集星光种子来唤醒花朵，打开月光门。准备好了吗？</p>
+            
+            <!-- Cozy Mode Toggle -->
+            <div class="setting-item" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 20px 0;">
+              <span style="font-weight: bold; color: #2e8b68;">温馨模式 (更轻松)：</span>
+              <label class="switch">
+                <input type="checkbox" id="cozyToggle" checked>
+                <span class="slider round"></span>
+              </label>
+            </div>
+
+            <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
+              <button id="startBtn" type="button" class="btn-primary">开始冒险</button>
+              <button id="stickerBookBtn" type="button" class="btn-secondary">贴纸书</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Level Complete Overlay -->
+        <div id="complete-overlay" class="overlay hidden">
+          <div class="overlay-panel">
+            <h2 style="color: #2e8b68;">闯关成功！</h2>
+            <div class="stars-display" style="font-size: 2rem; color: #ffd700; margin: 10px 0;">⭐⭐⭐</div>
+            <p id="complete-stats">种子: 8/8 | 时间: 1:20 | 生命: 3</p>
+            <p id="sticker-unlocked-msg" style="color: #d85f76; font-weight: bold;"></p>
+            <button id="nextLevelBtn" class="btn-primary">下一关</button>
+          </div>
+        </div>
+
+        <!-- Sticker Book Overlay -->
+        <div id="sticker-panel" class="overlay hidden">
+          <div class="overlay-panel" style="width: min(500px, 100%);">
+            <h2>我的贴纸书</h2>
+            <div class="sticker-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
+              <div class="sticker locked" id="st-cat">🐱<span class="sticker-name">月亮猫</span></div>
+              <div class="sticker locked" id="st-bunny">🐰<span class="sticker-name">星光兔</span></div>
+              <div class="sticker locked" id="st-owl">🦉<span class="sticker-name">瞌睡鸮</span></div>
+              <div class="sticker locked" id="st-fox">🦊<span class="sticker-name">水晶狐</span></div>
+              <div class="sticker locked" id="st-frog">🐸<span class="sticker-name">发光蛙</span></div>
+              <div class="sticker locked" id="st-dragon">🐲<span class="sticker-name">小飞龙</span></div>
+            </div>
+            <button id="closeStickerBtn" class="btn-secondary">返回</button>
           </div>
         </div>
       </div>
@@ -42,8 +87,8 @@
       <div class="controls">
         <button id="restartBtn" type="button">重新开始</button>
         <button id="pauseBtn" type="button">暂停</button>
-        <button id="botBtn" type="button">帮我一下</button>
-        <p class="hint">使用方向键或 WASD 移动。空格暂停。蓝色池塘会减慢 Iris 的速度；粉色爱心可以恢复生命。</p>
+        <button id="helpBtn" type="button">帮我一下</button>
+        <p class="hint">使用方向键或 WASD 移动。空格暂停。蓝色池塘会减慢速度；粉色爱心可以恢复生命。</p>
         <div class="pad" aria-label="方向键">
           <button data-dir="up" type="button">↑</button>
           <button data-dir="left" type="button">←</button>
@@ -53,6 +98,9 @@
       </div>
     </section>
   </main>
+
+  <!-- Floating Text Container -->
+  <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
   <script src="./game.js"></script>
   <script src="./bot.js"></script>

@@ -285,6 +285,10 @@ canvas {
 
 /* --- Added for Child-Friendly Upgrade --- */
 
+.hidden {
+  display: none !important;
+}
+
 .btn-primary {
   background: var(--rose) !important;
   color: white !important;
@@ -296,38 +300,6 @@ canvas {
   background: var(--muted) !important;
   color: white !important;
   font-size: 0.9rem;
-}
-
-.btn-diff {
-  background: white;
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 5px 15px;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.btn-diff.active {
-  background: var(--gold);
-  color: white;
-  border-color: var(--gold);
-}
-
-.btn-tab {
-  background: white;
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.btn-tab.active {
-  background: var(--sky);
-  color: white;
-  border-color: var(--sky);
-  font-weight: 700;
 }
 
 .sticker {
@@ -352,6 +324,69 @@ canvas {
   margin-top: 5px;
 }
 
-.cosmetic-item span {
-  font-weight: 700;
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--leaf);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--leaf);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Animations */
+@keyframes floatingText {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-50px); opacity: 0; }
+}
+
+.floating-text {
+  position: absolute;
+  animation: floatingText 1s ease-out forwards;
+  font-weight: bold;
+  color: var(--rose);
+  pointer-events: none;
 }
