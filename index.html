@@ -1,28 +1,32 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Iris and the Moonlit Garden</title>
+  <meta name="theme-color" content="#7b5dc8">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <main class="shell">
     <section class="game-surface" aria-label="Iris and the Moonlit Garden">
+      <button id="langBtn" class="lang-toggle" type="button" aria-label="Switch to Chinese">中文</button>
       <!-- HUD (Hidden initially) -->
       <div class="topbar hidden" id="hud">
         <div>
-          <h1>Iris 与月光花园</h1>
-          <p id="missionText">收集星光种子，点亮月光花园。</p>
+          <h1 id="gameTitle">Iris and the Moonlit Garden</h1>
+          <p id="missionText">Collect star seeds and light up the moon garden.</p>
         </div>
         <div class="stats" aria-live="polite">
-          <span id="levelStat">🌙 第 1 关</span>
-          <span id="seedStat">⭐ 星种子：0 / 0</span>
-          <span id="bonusStat">寻找钥匙</span>
-          <span id="timeStat">⏱ 时间 0:00</span>
+          <span id="levelStat">🌙 Level 1</span>
+          <span id="seedStat">⭐ Seeds: 0 / 0</span>
+          <span id="bonusStat">Find the key</span>
+          <span id="timeStat">⏱ Time 0:00</span>
           <span id="heartStat">💖 ♡♡♡</span>
-          <button id="muteBtn" class="icon-btn" type="button" aria-label="关闭声音" aria-pressed="false">🔊</button>
+          <button id="muteBtn" class="icon-btn" type="button" aria-label="Unmute sound" aria-pressed="true">🔇</button>
         </div>
       </div>
 
@@ -38,64 +42,100 @@
         <!-- Start / Title Overlay -->
         <div id="overlay" class="overlay">
           <div class="overlay-panel">
-            <h1 id="overlayTitle" style="font-size: 2.5rem; margin-bottom: 10px; color: #7b5dc8;">月光花园</h1>
-            <p id="overlayCopy">月光花园变暗了。帮助 Iris 收集星光种子，唤醒沉睡的花朵，打开闪闪发光的月光门。</p>
+            <h1 id="overlayTitle" style="font-size: 2.5rem; margin-bottom: 10px; color: #7b5dc8;">Moonlit Garden</h1>
+            <svg class="title-art" viewBox="0 0 220 120" role="img" aria-label="Moon and flowers">
+              <circle cx="108" cy="47" r="32" fill="#ffe28a"/>
+              <circle cx="122" cy="39" r="32" fill="#fffaf0"/>
+              <path d="M30 100 C64 72, 92 116, 122 92 S176 76, 202 104" fill="none" stroke="#7fb18c" stroke-width="7" stroke-linecap="round"/>
+              <g fill="#d85f76">
+                <circle cx="58" cy="86" r="8"/><circle cx="70" cy="86" r="8"/><circle cx="64" cy="76" r="8"/>
+              </g>
+              <circle cx="64" cy="84" r="5" fill="#f2b83d"/>
+              <g fill="#7b5dc8">
+                <circle cx="156" cy="80" r="7"/><circle cx="168" cy="80" r="7"/><circle cx="162" cy="70" r="7"/>
+              </g>
+              <circle cx="162" cy="78" r="4" fill="#f2b83d"/>
+            </svg>
+            <p id="overlayCopy" class="story-copy">Long ago, the moonlit garden was the brightest place in the world.<br>Then one day, all the stars fell asleep and the garden grew dark.<br>Iris set out with her lantern to find every star seed and wake the sleeping moon gate.</p>
             
             <!-- Cozy Mode Toggle -->
             <div class="setting-item" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 20px 0;">
-              <span style="font-weight: bold; color: #2e8b68;">温馨模式 (更轻松)：</span>
+              <span id="cozyLabel" style="font-weight: bold; color: #2e8b68;">Cozy Mode:</span>
               <label class="switch">
                 <input type="checkbox" id="cozyToggle" checked>
                 <span class="slider round"></span>
               </label>
+              <small id="cozyNote" class="cozy-note">Cozy Mode: infinite lives · no timer</small>
             </div>
 
             <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
-              <button id="startBtn" type="button" class="btn-primary">开始冒险</button>
-              <button id="levelSelectBtn" type="button" class="btn-secondary">选择关卡</button>
+              <button id="startBtn" type="button" class="btn-primary">Start Adventure</button>
+              <button id="levelSelectBtn" type="button" class="btn-secondary">Choose Level</button>
             </div>
           </div>
         </div>
 
         <div id="level-select-overlay" class="overlay hidden">
           <div class="overlay-panel level-select-panel">
-            <h2>选择关卡</h2>
-            <div id="levelGrid" class="level-grid" aria-label="关卡列表"></div>
-            <button id="levelBackBtn" type="button" class="btn-secondary">返回</button>
+            <h2 id="levelSelectTitle">Choose Level</h2>
+            <div id="levelGrid" class="level-grid" aria-label="Level list"></div>
+            <button id="levelBackBtn" type="button" class="btn-secondary">Back</button>
+          </div>
+        </div>
+
+        <div id="pause-overlay" class="overlay hidden">
+          <div class="overlay-panel">
+            <h2 id="pauseTitle">Paused</h2>
+            <div class="menu-buttons">
+              <button id="resumeBtn" type="button" class="btn-primary">Resume</button>
+              <button id="restartLevelBtn" type="button">Restart Level</button>
+              <button id="mainMenuBtn" type="button" class="btn-secondary">Main Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="confirm-overlay" class="overlay hidden">
+          <div class="overlay-panel">
+            <h2 id="confirmTitle">Leave this level?</h2>
+            <p id="confirmCopy">Your current run progress will be lost.</p>
+            <div class="menu-buttons">
+              <button id="confirmLeaveBtn" type="button" class="btn-primary">Leave</button>
+              <button id="cancelLeaveBtn" type="button" class="btn-secondary">Keep Playing</button>
+            </div>
           </div>
         </div>
 
         <!-- Level Complete Overlay -->
         <div id="complete-overlay" class="overlay hidden">
           <div class="overlay-panel">
-            <h2 style="color: #2e8b68;">闯关成功！</h2>
-            <div class="stars-display" aria-label="本关星星" style="font-size: 2rem; color: #ffd700; margin: 10px 0;">
+            <h2 id="completeTitle" style="color: #2e8b68;">Level Complete!</h2>
+            <div class="stars-display" aria-label="Level stars" style="font-size: 2rem; color: #ffd700; margin: 10px 0;">
               <span>☆</span><span>☆</span><span>☆</span>
             </div>
-            <p id="complete-stats">种子: 8/8 | 时间: 1:20 | 生命: 3</p>
-            <button id="nextLevelBtn" class="btn-primary" style="margin-top: 15px;">下一关</button>
+            <p id="complete-stats">Seeds: 8/8 | Time: 1:20 | Hits: 0</p>
+            <button id="nextLevelBtn" class="btn-primary" style="margin-top: 15px;">Next Level</button>
           </div>
         </div>
 
-        <div class="mobile-controls" aria-label="移动端控制">
-          <div class="mobile-pad" aria-label="虚拟方向键">
-            <button data-dir="up" type="button" aria-label="向上">↑</button>
-            <button data-dir="left" type="button" aria-label="向左">←</button>
-            <button data-dir="down" type="button" aria-label="向下">↓</button>
-            <button data-dir="right" type="button" aria-label="向右">→</button>
+        <div class="mobile-controls" aria-label="Mobile controls">
+          <div class="mobile-pad" aria-label="Virtual direction pad">
+            <button data-dir="up" type="button" aria-label="Move up">↑</button>
+            <button data-dir="left" type="button" aria-label="Move left">←</button>
+            <button data-dir="down" type="button" aria-label="Move down">↓</button>
+            <button data-dir="right" type="button" aria-label="Move right">→</button>
           </div>
-          <button id="mobilePauseBtn" class="mobile-pause" type="button" aria-label="暂停">暂停</button>
+          <button id="mobilePauseBtn" class="mobile-pause" type="button" aria-label="Pause">Pause</button>
         </div>
 
         <div id="tutorialBubble" class="tutorial-bubble hidden" aria-live="polite"></div>
       </div>
 
       <div class="controls">
-        <button id="restartBtn" type="button">重新开始</button>
-        <button id="pauseBtn" type="button">暂停</button>
-        <button id="helpBtn" type="button">帮我一下</button>
-        <p class="hint">使用方向键或 WASD 移动。空格暂停。蓝色池塘会减慢速度；粉色爱心可以恢复生命。</p>
-        <div class="pad" aria-label="方向键">
+        <button id="restartBtn" type="button">Restart</button>
+        <button id="pauseBtn" type="button">Pause</button>
+        <button id="helpBtn" type="button">Help me</button>
+        <p id="controlHint" class="hint">Use arrow keys or WASD to move. Press Space to pause. Blue ponds slow you down; pink hearts restore lives.</p>
+        <div class="pad" aria-label="Direction pad">
           <button data-dir="up" type="button">↑</button>
           <button data-dir="left" type="button">←</button>
           <button data-dir="down" type="button">↓</button>

@@ -7,8 +7,9 @@ class SaveManager {
       unlockedLevel: 1,
       bestTimes: {},
       bestStars: {},
-      muted: false,
+      muted: true,
       cozyMode: false,
+      language: "en",
     };
   }
 

@@ -52,11 +52,26 @@ button:hover {
 }
 
 .game-surface {
+  position: relative;
   background: rgba(255, 250, 240, 0.86);
   border: 1px solid rgba(118, 98, 75, 0.18);
   border-radius: 8px;
   box-shadow: 0 22px 50px rgba(64, 72, 88, 0.18);
   padding: 18px;
+}
+
+.lang-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  min-height: 34px;
+  border: 1px solid rgba(123, 93, 200, 0.24);
+  border-radius: 999px;
+  padding: 6px 11px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--violet);
+  box-shadow: none;
 }
 
 .topbar {
@@ -227,6 +242,31 @@ canvas {
   margin: 10px 0 18px;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.title-art {
+  width: 190px;
+  max-width: 80%;
+  margin: 0 auto 8px;
+  display: block;
+}
+
+.story-copy {
+  min-height: 118px;
+}
+
+.cozy-note {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(220px, 100%);
+  margin: 14px auto 0;
 }
 
 .level-select-panel {
