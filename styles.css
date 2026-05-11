@@ -229,6 +229,31 @@ canvas {
   line-height: 1.55;
 }
 
+.title-art {
+  width: 190px;
+  max-width: 80%;
+  margin: 0 auto 8px;
+  display: block;
+}
+
+.story-copy {
+  min-height: 118px;
+}
+
+.cozy-note {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(220px, 100%);
+  margin: 14px auto 0;
+}
+
 .level-select-panel {
   width: min(560px, 100%);
 }

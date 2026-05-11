@@ -18,6 +18,13 @@ const els = {
   levelSelectOverlay: document.querySelector("#level-select-overlay"),
   levelGrid: document.querySelector("#levelGrid"),
   levelBack: document.querySelector("#levelBackBtn"),
+  pauseOverlay: document.querySelector("#pause-overlay"),
+  confirmOverlay: document.querySelector("#confirm-overlay"),
+  resume: document.querySelector("#resumeBtn"),
+  restartLevel: document.querySelector("#restartLevelBtn"),
+  mainMenu: document.querySelector("#mainMenuBtn"),
+  confirmLeave: document.querySelector("#confirmLeaveBtn"),
+  cancelLeave: document.querySelector("#cancelLeaveBtn"),
   restart: document.querySelector("#restartBtn"),
   pause: document.querySelector("#pauseBtn"),
   toast: document.querySelector("#toast"),
@@ -61,6 +68,9 @@ let audioUnlocked = false;
 let tutorialStage = 0;
 let tutorialSteps = 0;
 let completedStars = 0;
+let storyTimer = null;
+
+const STORY_TEXT = "很久以前，月光花园是世界上最亮的地方。\n直到有一天，星星都睡着了，花园变得漆黑。\n小女孩 Iris 提着灯笼出发了，她要找回所有星光种子，唤醒沉睡的月亮门。";
 
 function resizeCanvas() {
   const ratio = Math.max(1, window.devicePixelRatio || 1);
@@ -302,7 +312,7 @@ function loop(time) {
 
 function update(dt) {
   sparkle += dt;
-  if (!isTutorialLevel()) {
+  if (!isTutorialLevel() && !cozyMode) {
     runTime += dt;
     levelTime += dt;
   }
@@ -448,6 +458,15 @@ function checkShadowHits() {
   const hit = state.shadows.some((shadow) => distance(shadow, state.player) < 0.62);
   if (!hit) return;
   
+  if (cozyMode) {
+    state.player.invincible = 1.0;
+    triggerDamageFlash();
+    animateHud(els.hearts, "hud-shake");
+    window.audioManager?.play("hurt");
+    showToast("温馨模式会保护 Iris。", 1.2);
+    return;
+  }
+
   hearts -= 1;
   livesLostThisLevel++;
   state.player.invincible = 1.0;
@@ -523,8 +542,8 @@ els.nextLevel.addEventListener("click", () => {
 
 function updateHud() {
   els.bonus.textContent = state.hasKey ? "钥匙已找到" : "寻找钥匙";
-  els.time.textContent = isTutorialLevel() ? "⏱ 教学关" : `⏱ 时间 ${formatTime(runTime)}`;
-  els.hearts.textContent = "💖 " + "♡".repeat(hearts);
+  els.time.textContent = (isTutorialLevel() || cozyMode) ? "⏱ 不计时" : `⏱ 时间 ${formatTime(runTime)}`;
+  els.hearts.textContent = cozyMode ? "💖 无限" : "💖 " + "♡".repeat(hearts);
   syncMuteButton();
   els.progress.style.width = `${Math.round(progressPercent())}%`;
 }
@@ -568,6 +587,7 @@ function showOverlay(title, copy, button, action = "start") {
   els.start.textContent = button;
   overlayAction = action;
   els.overlay.classList.remove("hidden");
+  if (action === "start") startStoryTypewriter(copy || STORY_TEXT);
 }
 
 function showToast(message, seconds = 1.7) {
@@ -676,6 +696,57 @@ function unlockAudio() {
   audioUnlocked = true;
   window.audioManager?.unlock();
   syncMuteButton();
+}
+
+function startStoryTypewriter(text = STORY_TEXT) {
+  window.clearInterval(storyTimer);
+  let index = 0;
+  const render = () => {
+    els.overlayCopy.innerHTML = text.slice(0, index).replace(/\n/g, "<br>");
+  };
+  render();
+  storyTimer = window.setInterval(() => {
+    index += 1;
+    render();
+    if (index >= text.length) window.clearInterval(storyTimer);
+  }, 50);
+}
+
+function skipStoryTypewriter() {
+  window.clearInterval(storyTimer);
+  els.overlayCopy.innerHTML = STORY_TEXT.replace(/\n/g, "<br>");
+}
+
+function showPauseMenu() {
+  if (!running) return;
+  paused = true;
+  els.pause.textContent = "继续";
+  els.mobilePause.textContent = "继续";
+  els.pauseOverlay.classList.remove("hidden");
+}
+
+function hidePauseMenu() {
+  els.pauseOverlay.classList.add("hidden");
+  if (!running) return;
+  paused = false;
+  els.pause.textContent = "暂停";
+  els.mobilePause.textContent = "暂停";
+}
+
+function askReturnToMenu() {
+  els.confirmOverlay.classList.remove("hidden");
+}
+
+function returnToMainMenu() {
+  running = false;
+  paused = false;
+  keys.clear();
+  els.pauseOverlay.classList.add("hidden");
+  els.confirmOverlay.classList.add("hidden");
+  els.completeOverlay.classList.add("hidden");
+  els.hud.classList.add("hidden");
+  els.progressBar.classList.add("hidden");
+  showOverlay("月光花园", STORY_TEXT, "开始冒险", "start");
 }
 
 function formatTime(seconds) {
@@ -861,8 +932,9 @@ window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
   keys.add(key);
   if (key === " " && running) {
-    paused = !paused;
-    els.pause.textContent = paused ? "继续" : "暂停";
+    event.preventDefault();
+    if (paused) hidePauseMenu();
+    else showPauseMenu();
   }
 });
 
@@ -895,6 +967,18 @@ els.pause.addEventListener("click", () => {
 
 els.mobilePause.addEventListener("click", () => togglePause());
 
+els.resume.addEventListener("click", hidePauseMenu);
+
+els.restartLevel.addEventListener("click", () => {
+  els.pauseOverlay.classList.add("hidden");
+  startLevel(levelIndex);
+});
+
+els.mainMenu.addEventListener("click", askReturnToMenu);
+els.cancelLeave.addEventListener("click", () => els.confirmOverlay.classList.add("hidden"));
+els.confirmLeave.addEventListener("click", returnToMainMenu);
+els.overlayCopy.addEventListener("click", skipStoryTypewriter);
+
 els.mute.addEventListener("click", () => {
   unlockAudio();
   window.audioManager?.toggleMuted();
@@ -922,9 +1006,8 @@ document.querySelectorAll(".pad button, .mobile-pad button").forEach((button) =>
 
 function togglePause() {
   if (!running) return;
-  paused = !paused;
-  els.pause.textContent = paused ? "继续" : "暂停";
-  els.mobilePause.textContent = paused ? "继续" : "暂停";
+  if (paused) hidePauseMenu();
+  else showPauseMenu();
 }
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -964,4 +1047,10 @@ if (savedGame) {
 syncMuteButton();
 renderLevelGrid();
 loadLevel(0);
+startStoryTypewriter();
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+    console.warn("Service worker registration failed.", error);
+  });
+}
 draw();

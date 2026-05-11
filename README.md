@@ -29,7 +29,9 @@ Open this file in a browser:
 - `game.js`: Canvas game logic
 - `audio-manager.js`: lazy-loaded Web Audio wrapper
 - `save-manager.js`: versioned localStorage progress wrapper
+- `manifest.json` and `service-worker.js`: PWA install/offline support
 - `assets/audio/`: tiny locally generated CC0 placeholder sounds
+- `assets/icons/`: generated app icons
 
 ## Save Data
 
