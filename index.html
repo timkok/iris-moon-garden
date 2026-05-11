@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iris and the Moonlit Garden</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="game-surface" aria-label="Iris and the Moonlit Garden">
+      <div class="topbar">
+        <div>
+          <h1>Iris and the Moonlit Garden</h1>
+          <p id="missionText">Collect star seeds and light up the garden.</p>
+        </div>
+        <div class="stats" aria-live="polite">
+          <span id="levelStat">Level 1</span>
+          <span id="seedStat">Seeds 0 / 0</span>
+          <span id="bonusStat">Moon path</span>
+          <span id="timeStat">Time 0:00</span>
+          <span id="heartStat">♡♡♡</span>
+        </div>
+      </div>
+
+      <div class="progress" aria-hidden="true">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="game" width="960" height="576"></canvas>
+        <div id="toast" class="toast hidden" aria-live="polite"></div>
+        <div id="overlay" class="overlay">
+          <div class="overlay-panel">
+            <h2 id="overlayTitle">Ready, Iris?</h2>
+            <p id="overlayCopy">Guide Iris through six moonlit gardens. Collect every star seed, watch the shadows, and step into the glowing gate.</p>
+            <button id="startBtn" type="button">Start Game</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="restartBtn" type="button">Restart</button>
+        <button id="pauseBtn" type="button">Pause</button>
+        <button id="botBtn" type="button">🤖 Auto Play</button>
+        <p class="hint">Move with arrow keys or WASD. Space pauses. Blue ponds slow Iris down; pink hearts restore one life.</p>
+        <div class="pad" aria-label="Direction buttons">
+          <button data-dir="up" type="button">↑</button>
+          <button data-dir="left" type="button">←</button>
+          <button data-dir="down" type="button">↓</button>
+          <button data-dir="right" type="button">→</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./game.js"></script>
+  <script src="./bot.js"></script>
+</body>
+</html>
