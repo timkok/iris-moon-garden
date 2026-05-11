@@ -9,6 +9,7 @@ class SaveManager {
       bestStars: {},
       muted: false,
       cozyMode: false,
+      language: "en",
     };
   }
 

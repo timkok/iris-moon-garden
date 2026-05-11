@@ -1,7 +1,7 @@
 {
-  "name": "Iris 与月光花园",
-  "short_name": "月光花园",
-  "description": "帮助 Iris 找回星光种子，唤醒月亮门。",
+  "name": "Iris and the Moonlit Garden",
+  "short_name": "Moon Garden",
+  "description": "Help Iris find every star seed and wake the moon gate.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -52,11 +52,26 @@ button:hover {
 }
 
 .game-surface {
+  position: relative;
   background: rgba(255, 250, 240, 0.86);
   border: 1px solid rgba(118, 98, 75, 0.18);
   border-radius: 8px;
   box-shadow: 0 22px 50px rgba(64, 72, 88, 0.18);
   padding: 18px;
+}
+
+.lang-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  min-height: 34px;
+  border: 1px solid rgba(123, 93, 200, 0.24);
+  border-radius: 999px;
+  padding: 6px 11px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--violet);
+  box-shadow: none;
 }
 
 .topbar {

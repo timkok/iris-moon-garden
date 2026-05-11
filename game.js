@@ -2,6 +2,8 @@ const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 
 const els = {
+  lang: document.querySelector("#langBtn"),
+  gameTitle: document.querySelector("#gameTitle"),
   mission: document.querySelector("#missionText"),
   level: document.querySelector("#levelStat"),
   seeds: document.querySelector("#seedStat"),
@@ -16,10 +18,14 @@ const els = {
   start: document.querySelector("#startBtn"),
   levelSelect: document.querySelector("#levelSelectBtn"),
   levelSelectOverlay: document.querySelector("#level-select-overlay"),
+  levelSelectTitle: document.querySelector("#levelSelectTitle"),
   levelGrid: document.querySelector("#levelGrid"),
   levelBack: document.querySelector("#levelBackBtn"),
   pauseOverlay: document.querySelector("#pause-overlay"),
+  pauseTitle: document.querySelector("#pauseTitle"),
   confirmOverlay: document.querySelector("#confirm-overlay"),
+  confirmTitle: document.querySelector("#confirmTitle"),
+  confirmCopy: document.querySelector("#confirmCopy"),
   resume: document.querySelector("#resumeBtn"),
   restartLevel: document.querySelector("#restartLevelBtn"),
   mainMenu: document.querySelector("#mainMenuBtn"),
@@ -32,12 +38,16 @@ const els = {
   hud: document.querySelector("#hud"),
   progressBar: document.querySelector("#progressBar"),
   cozyToggle: document.querySelector("#cozyToggle"),
+  cozyLabel: document.querySelector("#cozyLabel"),
+  cozyNote: document.querySelector("#cozyNote"),
   completeOverlay: document.querySelector("#complete-overlay"),
+  completeTitle: document.querySelector("#completeTitle"),
   completeStats: document.querySelector("#complete-stats"),
   nextLevel: document.querySelector("#nextLevelBtn"),
   mobilePause: document.querySelector("#mobilePauseBtn"),
   damageFlash: document.querySelector("#damageFlash"),
   tutorialBubble: document.querySelector("#tutorialBubble"),
+  controlHint: document.querySelector("#controlHint"),
 };
 
 const TILE = 48;
@@ -69,8 +79,133 @@ let tutorialStage = 0;
 let tutorialSteps = 0;
 let completedStars = 0;
 let storyTimer = null;
+let currentLang = window.saveManager?.load().language || "en";
 
-const STORY_TEXT = "很久以前，月光花园是世界上最亮的地方。\n直到有一天，星星都睡着了，花园变得漆黑。\n小女孩 Iris 提着灯笼出发了，她要找回所有星光种子，唤醒沉睡的月亮门。";
+const I18N = {
+  en: {
+    htmlLang: "en",
+    langButton: "中文",
+    langAria: "Switch to Chinese",
+    title: "Iris and the Moonlit Garden",
+    shortTitle: "Moonlit Garden",
+    story: "Long ago, the moonlit garden was the brightest place in the world.\nThen one day, all the stars fell asleep and the garden grew dark.\nIris set out with her lantern to find every star seed and wake the sleeping moon gate.",
+    cozyLabel: "Cozy Mode:",
+    cozyNote: "Cozy Mode: infinite lives · no timer",
+    start: "Start Adventure",
+    chooseLevel: "Choose Level",
+    back: "Back",
+    paused: "Paused",
+    resume: "Resume",
+    restartLevel: "Restart Level",
+    mainMenu: "Main Menu",
+    confirmTitle: "Leave this level?",
+    confirmCopy: "Your current run progress will be lost.",
+    leave: "Leave",
+    keepPlaying: "Keep Playing",
+    complete: "Level Complete!",
+    nextLevel: "Next Level",
+    restart: "Restart",
+    pause: "Pause",
+    help: "Help me",
+    hideHelp: "Hide guide",
+    hint: "Use arrow keys or WASD to move. Press Space to pause. Blue ponds slow you down; pink hearts restore lives.",
+    findKey: "Find the key",
+    keyFound: "Key found",
+    seeds: "Seeds",
+    time: "Time",
+    noTimer: "No timer",
+    infinite: "Infinite",
+    stats: "Seeds: {seeds}/{total} | Time: {time} | Hits: {hits}",
+    levelLabel: "Level {n}",
+    mute: "Mute sound",
+    unmute: "Unmute sound",
+    seedComplete: "All star seeds collected! The moon gate is open!",
+    keyToast: "Rainbow key found!",
+    cozyProtect: "Cozy Mode keeps Iris safe.",
+    tryAgain: "Don't worry, try again!",
+    noLives: "No lives left.",
+    cozyRetry: "One more try. Iris is closer to the moon tree.",
+    retryTitle: "That was a brave try!",
+    retryCopy: "Try again. Iris is closer to the moon tree. Want to use Cozy Mode?",
+    allDoneTitle: "All done!",
+    allDoneCopy: "The moonlit garden is shining again. You finished every adventure.",
+    playAgain: "Play Again",
+    tutorial: {
+      1: "Use the arrow keys to move. Take two steps first.",
+      2: "Pick up the star seed to brighten the garden.",
+      3: "Grab the key, then walk into the moon gate.",
+    },
+  },
+  zh: {
+    htmlLang: "zh-CN",
+    langButton: "English",
+    langAria: "切换到英文",
+    title: "Iris 与月光花园",
+    shortTitle: "月光花园",
+    story: "很久以前，月光花园是世界上最亮的地方。\n直到有一天，星星都睡着了，花园变得漆黑。\n小女孩 Iris 提着灯笼出发了，她要找回所有星光种子，唤醒沉睡的月亮门。",
+    cozyLabel: "温馨模式 (更轻松)：",
+    cozyNote: "温馨模式：无限生命 · 不计时",
+    start: "开始冒险",
+    chooseLevel: "选择关卡",
+    back: "返回",
+    paused: "暂停中",
+    resume: "继续",
+    restartLevel: "重新开始本关",
+    mainMenu: "返回主菜单",
+    confirmTitle: "确定离开本关吗？",
+    confirmCopy: "进度会丢失。",
+    leave: "确定离开",
+    keepPlaying: "继续冒险",
+    complete: "闯关成功！",
+    nextLevel: "下一关",
+    restart: "重新开始",
+    pause: "暂停",
+    help: "帮我一下",
+    hideHelp: "隐藏指引",
+    hint: "使用方向键或 WASD 移动。空格暂停。蓝色池塘会减慢速度；粉色爱心可以恢复生命。",
+    findKey: "寻找钥匙",
+    keyFound: "钥匙已找到",
+    seeds: "星种子",
+    time: "时间",
+    noTimer: "不计时",
+    infinite: "无限",
+    stats: "种子: {seeds}/{total} | 时间: {time} | 扣血: {hits}",
+    levelLabel: "第 {n} 关",
+    mute: "关闭声音",
+    unmute: "打开声音",
+    seedComplete: "星光种子收集完成！月光门打开啦！",
+    keyToast: "彩虹钥匙找到了！",
+    cozyProtect: "温馨模式会保护 Iris。",
+    tryAgain: "别担心，再试一次！",
+    noLives: "生命耗尽。",
+    cozyRetry: "再试一次，Iris 离月亮树更近啦。",
+    retryTitle: "这次飞得很棒！",
+    retryCopy: "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？",
+    allDoneTitle: "大功告成！",
+    allDoneCopy: "月光花园再次闪耀！你完成了所有冒险。",
+    playAgain: "再玩一次",
+    tutorial: {
+      1: "用方向键移动，先走两步试试看",
+      2: "捡起星种子，让花园亮一点",
+      3: "拿钥匙，再走进月光门",
+    },
+  },
+};
+
+function t(key, values = {}) {
+  const parts = key.split(".");
+  let value = I18N[currentLang];
+  parts.forEach((part) => {
+    value = value?.[part];
+  });
+  if (typeof value !== "string") return key;
+  return value.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? "");
+}
+
+function levelText(value) {
+  if (typeof value === "string") return value;
+  return value?.[currentLang] || value?.en || "";
+}
 
 function resizeCanvas() {
   const ratio = Math.max(1, window.devicePixelRatio || 1);
@@ -85,8 +220,8 @@ resizeCanvas();
 
 const levels = [
   {
-    name: "第 1 关：小小教学",
-    mission: "跟着提示走，一起学会在月光花园里冒险。",
+    name: { en: "Level 1: Tiny Tutorial", zh: "第 1 关：小小教学" },
+    mission: { en: "Follow the hints and learn how to explore the moonlit garden.", zh: "跟着提示走，一起学会在月光花园里冒险。" },
     map: [
       "####################",
       "#I..*..............#",
@@ -104,8 +239,8 @@ const levels = [
     shadows: [],
   },
   {
-    name: "第 2 关：穿过迷雾池塘",
-    mission: "蓝色泥潭会减慢 Iris 的速度，看准时机穿过它们。",
+    name: { en: "Level 2: Misty Ponds", zh: "第 2 关：穿过迷雾池塘" },
+    mission: { en: "Blue ponds slow Iris down, so cross them with care.", zh: "蓝色泥潭会减慢 Iris 的速度，看准时机穿过它们。" },
     map: [
       "####################",
       "#I...#....*....#...#",
@@ -123,8 +258,8 @@ const levels = [
     shadows: [],
   },
   {
-    name: "第 3 关：避开跳舞的阴影",
-    mission: "本关引入了一个缓慢移动的阴影，小心避开它！",
+    name: { en: "Level 3: Dancing Shadows", zh: "第 3 关：避开跳舞的阴影" },
+    mission: { en: "A slow shadow is moving here. Stay careful and slip past it!", zh: "本关引入了一个缓慢移动的阴影，小心避开它！" },
     map: [
       "####################",
       "#I..*....~~~~......#",
@@ -144,8 +279,8 @@ const levels = [
     ],
   },
   {
-    name: "第 4 关：寻找隐藏的爱心",
-    mission: "本关增加了一个隐藏的爱心，可以恢复生命哦。",
+    name: { en: "Level 4: Hidden Heart", zh: "第 4 关：寻找隐藏的爱心" },
+    mission: { en: "There is a hidden heart in this level. It can restore a life.", zh: "本关增加了一个隐藏的爱心，可以恢复生命哦。" },
     map: [
       "####################",
       "#I....#...*.....#..#",
@@ -166,8 +301,8 @@ const levels = [
     ],
   },
   {
-    name: "第 5 关：点亮月亮桥",
-    mission: "路线更复杂了，但依然要保持耐心。",
+    name: { en: "Level 5: Light the Moon Bridge", zh: "第 5 关：点亮月亮桥" },
+    mission: { en: "The path is trickier now, but patience will light the way.", zh: "路线更复杂了，但依然要保持耐心。" },
     map: [
       "####################",
       "#I..*....#....*....#",
@@ -189,8 +324,8 @@ const levels = [
     ],
   },
   {
-    name: "第 6 关：打开最后的月光门",
-    mission: "终极挑战！收集所有种子并安全到达终点吧！",
+    name: { en: "Level 6: The Last Moon Gate", zh: "第 6 关：打开最后的月光门" },
+    mission: { en: "The final challenge! Collect every seed and reach the gate safely.", zh: "终极挑战！收集所有种子并安全到达终点吧！" },
     map: [
       "####################",
       "#I..*....#.....*...#",
@@ -262,11 +397,11 @@ function loadLevel(index) {
   tutorialSteps = 0;
   levelTime = 0;
   livesLostThisLevel = 0;
-  els.mission.textContent = level.mission;
+  els.mission.textContent = levelText(level.mission);
   
   // Update HUD text (even if hidden)
-  els.level.textContent = `🌙 ${level.name}`;
-  els.seeds.textContent = `⭐ 星种子：0 / ${state.totalSeeds}`;
+  els.level.textContent = `🌙 ${levelText(level.name)}`;
+  els.seeds.textContent = `⭐ ${t("seeds")}: 0 / ${state.totalSeeds}`;
   
   updateHud();
 }
@@ -290,7 +425,8 @@ function startLevel(index) {
   running = true;
   lastTime = 0;
   keys.clear();
-  els.pause.textContent = "暂停";
+  els.pause.textContent = t("pause");
+  els.mobilePause.textContent = t("pause");
   
   // Show HUD ONLY after clicking start
   els.hud.classList.remove("hidden");
@@ -421,12 +557,12 @@ function collectItems() {
       animateHud(els.seeds, "hud-pop");
       window.audioManager?.play("collectSeed");
       const collectedCount = state.seeds.filter((item) => item.collected).length;
-      els.seeds.textContent = `⭐ 星种子：${collectedCount} / ${state.totalSeeds}`;
+      els.seeds.textContent = `⭐ ${t("seeds")}: ${collectedCount} / ${state.totalSeeds}`;
       
       const left = state.totalSeeds - collectedCount;
       if (left === 0) {
         if (isTutorialLevel()) tutorialStage = Math.max(tutorialStage, 3);
-        showToast("星光种子收集完成！月光门打开啦！", 2);
+        showToast(t("seedComplete"), 2);
       }
     }
   });
@@ -436,7 +572,7 @@ function collectItems() {
   state.hasKey = true;
     spawnParticles(state.key.x, state.key.y, "#c865a7", 7);
     window.audioManager?.play("doorOpen");
-  showToast("彩虹钥匙找到了！");
+  showToast(t("keyToast"));
   }
   
   state.heartPickups.forEach((heart) => {
@@ -463,7 +599,7 @@ function checkShadowHits() {
     triggerDamageFlash();
     animateHud(els.hearts, "hud-shake");
     window.audioManager?.play("hurt");
-    showToast("温馨模式会保护 Iris。", 1.2);
+    showToast(t("cozyProtect"), 1.2);
     return;
   }
 
@@ -485,16 +621,16 @@ function checkShadowHits() {
     });
   });
   
-  showToast(hearts > 0 ? "别担心，再试一次！" : "生命耗尽。", 1.5);
+  showToast(hearts > 0 ? t("tryAgain") : t("noLives"), 1.5);
   
   if (hearts <= 0) {
       if (cozyMode) {
           hearts = MAX_HEARTS;
           loadLevel(levelIndex);
-          showToast("再试一次，Iris 离月亮树更近啦。");
+          showToast(t("cozyRetry"));
       } else {
           running = false;
-          showOverlay("这次飞得很棒！", "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？", "重新开始", "retry");
+          showOverlay(t("retryTitle"), t("retryCopy"), t("restart"), "retry");
       }
   }
 }
@@ -522,7 +658,12 @@ function showLevelCompleteScreen() {
     
     renderWinStars(stars);
     window.audioManager?.play("win");
-    els.completeStats.textContent = `种子: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | 时间: ${formatTime(levelTime)} | 扣血: ${livesLostThisLevel}`;
+    els.completeStats.textContent = t("stats", {
+      seeds: state.seeds.filter(s => s.collected).length,
+      total: state.totalSeeds,
+      time: formatTime(levelTime),
+      hits: livesLostThisLevel,
+    });
     
     els.completeOverlay.classList.remove("hidden");
     renderLevelGrid();
@@ -532,7 +673,7 @@ els.nextLevel.addEventListener("click", () => {
     els.completeOverlay.classList.add("hidden");
     levelIndex++;
     if (levelIndex >= levels.length) {
-        showOverlay("大功告成！", "月光花园再次闪耀！你完成了所有冒险。", "再玩一次", "start");
+        showOverlay(t("allDoneTitle"), t("allDoneCopy"), t("playAgain"), "start");
         return;
     }
     loadLevel(levelIndex);
@@ -541,9 +682,9 @@ els.nextLevel.addEventListener("click", () => {
 });
 
 function updateHud() {
-  els.bonus.textContent = state.hasKey ? "钥匙已找到" : "寻找钥匙";
-  els.time.textContent = (isTutorialLevel() || cozyMode) ? "⏱ 不计时" : `⏱ 时间 ${formatTime(runTime)}`;
-  els.hearts.textContent = cozyMode ? "💖 无限" : "💖 " + "♡".repeat(hearts);
+  els.bonus.textContent = state.hasKey ? t("keyFound") : t("findKey");
+  els.time.textContent = (isTutorialLevel() || cozyMode) ? `⏱ ${t("noTimer")}` : `⏱ ${t("time")} ${formatTime(runTime)}`;
+  els.hearts.textContent = cozyMode ? `💖 ${t("infinite")}` : "💖 " + "♡".repeat(hearts);
   syncMuteButton();
   els.progress.style.width = `${Math.round(progressPercent())}%`;
 }
@@ -559,9 +700,9 @@ function updateTutorial() {
   }
   if (tutorialStage === 1 && tutorialSteps >= 2) tutorialStage = 2;
   const messages = {
-    1: "用方向键移动，先走两步试试看",
-    2: "捡起星种子，让花园亮一点",
-    3: "拿钥匙，再走进月光门",
+    1: t("tutorial.1"),
+    2: t("tutorial.2"),
+    3: t("tutorial.3"),
   };
   els.tutorialBubble.textContent = messages[tutorialStage] || "";
   els.tutorialBubble.classList.toggle("hidden", !messages[tutorialStage]);
@@ -587,7 +728,7 @@ function showOverlay(title, copy, button, action = "start") {
   els.start.textContent = button;
   overlayAction = action;
   els.overlay.classList.remove("hidden");
-  if (action === "start") startStoryTypewriter(copy || STORY_TEXT);
+  if (action === "start") startStoryTypewriter(copy || t("story"));
 }
 
 function showToast(message, seconds = 1.7) {
@@ -666,8 +807,56 @@ function renderWinStars(stars) {
 function syncMuteButton() {
   if (!els.mute || !window.audioManager) return;
   els.mute.textContent = window.audioManager.muted ? "🔇" : "🔊";
-  els.mute.setAttribute("aria-label", window.audioManager.muted ? "打开声音" : "关闭声音");
+  els.mute.setAttribute("aria-label", window.audioManager.muted ? t("unmute") : t("mute"));
   els.mute.setAttribute("aria-pressed", String(window.audioManager.muted));
+}
+
+function applyLanguage({ restartStory = false } = {}) {
+  if (!I18N[currentLang]) currentLang = "en";
+  document.documentElement.lang = t("htmlLang");
+  document.title = t("title");
+  els.lang.textContent = t("langButton");
+  els.lang.setAttribute("aria-label", t("langAria"));
+  els.gameTitle.textContent = t("title");
+  els.overlayTitle.textContent = t("shortTitle");
+  els.cozyLabel.textContent = t("cozyLabel");
+  els.cozyNote.textContent = t("cozyNote");
+  els.start.textContent = overlayAction === "retry" ? t("restart") : t("start");
+  els.levelSelect.textContent = t("chooseLevel");
+  els.levelSelectTitle.textContent = t("chooseLevel");
+  els.levelBack.textContent = t("back");
+  els.pauseTitle.textContent = t("paused");
+  els.resume.textContent = t("resume");
+  els.restartLevel.textContent = t("restartLevel");
+  els.mainMenu.textContent = t("mainMenu");
+  els.confirmTitle.textContent = t("confirmTitle");
+  els.confirmCopy.textContent = t("confirmCopy");
+  els.confirmLeave.textContent = t("leave");
+  els.cancelLeave.textContent = t("keepPlaying");
+  els.completeTitle.textContent = t("complete");
+  els.nextLevel.textContent = t("nextLevel");
+  els.restart.textContent = t("restart");
+  els.pause.textContent = paused ? t("resume") : t("pause");
+  els.mobilePause.textContent = paused ? t("resume") : t("pause");
+  els.mobilePause.setAttribute("aria-label", t("pause"));
+  els.help.textContent = showHintPath ? t("hideHelp") : t("help");
+  els.controlHint.textContent = t("hint");
+  renderLevelGrid();
+  if (levels[levelIndex]) {
+    els.mission.textContent = levelText(levels[levelIndex].mission);
+    els.level.textContent = `🌙 ${levelText(levels[levelIndex].name)}`;
+    const collectedCount = state.seeds.filter((item) => item.collected).length;
+    els.seeds.textContent = `⭐ ${t("seeds")}: ${collectedCount} / ${state.totalSeeds}`;
+  }
+  updateHud();
+  if (restartStory && !els.overlay.classList.contains("hidden")) startStoryTypewriter();
+  syncMuteButton();
+}
+
+function setLanguage(language) {
+  currentLang = language;
+  window.saveManager?.save({ language });
+  applyLanguage({ restartStory: true });
 }
 
 function renderLevelGrid() {
@@ -683,7 +872,7 @@ function renderLevelGrid() {
     button.className = `level-card${unlocked ? "" : " locked"}`;
     button.disabled = !unlocked;
     const starText = unlocked ? "⭐".repeat(stars) + "☆".repeat(3 - stars) : "🔒";
-    button.innerHTML = `<strong>第 ${levelNumber} 关</strong><span>${starText}</span>`;
+    button.innerHTML = `<strong>${t("levelLabel", { n: levelNumber })}</strong><span>${starText}</span>`;
     button.addEventListener("click", () => {
       if (unlocked) startLevel(index);
     });
@@ -698,7 +887,7 @@ function unlockAudio() {
   syncMuteButton();
 }
 
-function startStoryTypewriter(text = STORY_TEXT) {
+function startStoryTypewriter(text = t("story")) {
   window.clearInterval(storyTimer);
   let index = 0;
   const render = () => {
@@ -714,14 +903,14 @@ function startStoryTypewriter(text = STORY_TEXT) {
 
 function skipStoryTypewriter() {
   window.clearInterval(storyTimer);
-  els.overlayCopy.innerHTML = STORY_TEXT.replace(/\n/g, "<br>");
+  els.overlayCopy.innerHTML = t("story").replace(/\n/g, "<br>");
 }
 
 function showPauseMenu() {
   if (!running) return;
   paused = true;
-  els.pause.textContent = "继续";
-  els.mobilePause.textContent = "继续";
+  els.pause.textContent = t("resume");
+  els.mobilePause.textContent = t("resume");
   els.pauseOverlay.classList.remove("hidden");
 }
 
@@ -729,8 +918,8 @@ function hidePauseMenu() {
   els.pauseOverlay.classList.add("hidden");
   if (!running) return;
   paused = false;
-  els.pause.textContent = "暂停";
-  els.mobilePause.textContent = "暂停";
+  els.pause.textContent = t("pause");
+  els.mobilePause.textContent = t("pause");
 }
 
 function askReturnToMenu() {
@@ -746,7 +935,7 @@ function returnToMainMenu() {
   els.completeOverlay.classList.add("hidden");
   els.hud.classList.add("hidden");
   els.progressBar.classList.add("hidden");
-  showOverlay("月光花园", STORY_TEXT, "开始冒险", "start");
+  showOverlay(t("shortTitle"), t("story"), t("start"), "start");
 }
 
 function formatTime(seconds) {
@@ -985,9 +1174,13 @@ els.mute.addEventListener("click", () => {
   syncMuteButton();
 });
 
+els.lang.addEventListener("click", () => {
+  setLanguage(currentLang === "en" ? "zh" : "en");
+});
+
 els.help.addEventListener("click", () => {
     showHintPath = !showHintPath;
-    els.help.textContent = showHintPath ? "隐藏指引" : "帮我一下";
+    els.help.textContent = showHintPath ? t("hideHelp") : t("help");
 });
 
 // D-Pad
@@ -1042,11 +1235,11 @@ window.addEventListener("resize", resizeCanvas);
 // Init
 const savedGame = window.saveManager?.load();
 if (savedGame) {
+  currentLang = savedGame.language || "en";
   els.cozyToggle.checked = savedGame.cozyMode;
 }
-syncMuteButton();
-renderLevelGrid();
 loadLevel(0);
+applyLanguage();
 startStoryTypewriter();
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js").catch((error) => {
