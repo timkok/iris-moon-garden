@@ -53,7 +53,7 @@
 
             <!-- Mode Selector -->
             <div style="margin-top: 20px;">
-              <button id="vsModeBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-weight: bold;">⚔️ Versus Mode (Shared Keyboard)</button>
+              <button id="coopModeBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-weight: bold;">👯 Two-player: Iris + Luna</button>
             </div>
 
             <!-- Level Selector -->
@@ -67,7 +67,7 @@
         </div>
 
         <!-- Level Complete Overlay -->
-        <div id="complete-overlay" class="overlay hidden" aria-hidden="true">
+        <div id="complete-overlay" class="overlay hidden" aria-hidden="true" hidden>
           <div class="overlay-panel">
             <h2 style="color: #2e8b68;" id="complete-title">Level Complete!</h2>
             <div class="stars-display" style="font-size: 2rem; color: #ffd700; margin: 10px 0;"></div>
@@ -77,7 +77,7 @@
         </div>
 
         <!-- End Screen Overlay -->
-        <div id="end-overlay" class="overlay hidden" aria-hidden="true">
+        <div id="end-overlay" class="overlay hidden" aria-hidden="true" hidden>
           <div class="overlay-panel">
             <h2 style="color: #7b5dc8;" id="end-title">The Moon Garden is glowing again!</h2>
             <p id="end-stats" style="margin-bottom: 15px;"></p>
@@ -96,7 +96,7 @@
         <button id="restartBtn" type="button">Restart</button>
         <button id="pauseBtn" type="button">Pause</button>
         <button id="helpBtn" type="button">Hint / Help me</button>
-        <p class="hint" id="hint-text">Use arrow keys or WASD to move. Space to pause. Blue ponds slow you down; pink hearts restore life.</p>
+        <p class="hint" id="hint-text">Player 1: WASD · Player 2: Arrow Keys · Space: Pause</p>
         
         <!-- Mobile D-Pad (Hidden on desktop via CSS) -->
         <div class="pad" aria-label="Directional Controls">

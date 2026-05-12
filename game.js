@@ -52,7 +52,7 @@ let cozyMode = true;
 let showHintPath = false;
 let livesLostThisLevel = 0;
 let currentLang = "en"; // Default to English as requested
-let vsMode = false;
+let coopMode = false;
 
 const i18n = {
     zh: {
@@ -65,7 +65,7 @@ const i18n = {
         pauseBtnActive: "继续",
         helpBtn: "帮我一下",
         helpBtnActive: "隐藏指引",
-        hintText: "使用方向键或 WASD 移动。空格暂停。蓝色池塘会减慢速度；粉色爱心可以恢复生命。",
+        hintText: "玩家 1: WASD · 玩家 2: 方向键 · 空格: 暂停",
         completeTitle: "闯关成功！",
         nextLevelBtn: "下一关",
         playAgainBtn: "再玩一次",
@@ -87,6 +87,9 @@ const i18n = {
         retryCopy: "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？",
         endTitle: "大功告成！",
         endCopy: "月光花园再次闪耀！你完成了所有冒险。",
+        coopModeBtn: "👯 双人模式：Iris + Luna",
+        p1Score: "Iris: ",
+        p2Score: "Luna: "
     },
     en: {
         title: "Iris and the Moonlit Garden",
@@ -98,7 +101,7 @@ const i18n = {
         pauseBtnActive: "Resume",
         helpBtn: "Hint / Help me",
         helpBtnActive: "Hide Hint",
-        hintText: "Use arrow keys or WASD to move. Space to pause. Blue ponds slow you down; pink hearts restore life.",
+        hintText: "Player 1: WASD · Player 2: Arrow Keys · Space: Pause",
         completeTitle: "Level Complete!",
         nextLevelBtn: "Next Level",
         playAgainBtn: "Play Again",
@@ -120,6 +123,9 @@ const i18n = {
         retryCopy: "Try again, Iris is getting closer to the Moon Tree. Want to try Cozy Mode?",
         endTitle: "Well Done!",
         endCopy: "The Moon Garden is glowing again! You completed all adventures.",
+        coopModeBtn: "👯 Two-player: Iris + Luna",
+        p1Score: "Iris: ",
+        p2Score: "Luna: "
     }
 };
 
@@ -404,8 +410,8 @@ const levels = [
 ];
 
 const state = {
-  player: { x: 1.5, y: 1.5, radius: 15, speed: 4.1, invincible: 0 },
-  player2: { x: 1.5, y: 1.5, radius: 15, speed: 4.1, score: 0, invincible: 0 },
+  player: { id: "p1", name: "Iris", x: 1.5, y: 1.5, radius: 15, speed: 4.1, score: 0, invincible: 0 },
+  player2: { id: "p2", name: "Luna", x: 1.5, y: 1.5, radius: 15, speed: 4.1, score: 0, invincible: 0 },
   seeds: [],
   key: null,
   hasKey: false,
@@ -436,6 +442,8 @@ function switchLanguage(lang) {
     els.completeTitle.textContent = t.completeTitle;
     els.nextLevel.textContent = t.nextLevelBtn;
     
+    updateVsBtnUI();
+    
     if (running) {
         els.level.textContent = `🌙 ${levels[levelIndex].names[lang]}`;
         els.seeds.textContent = `⭐ ${t.seeds}：${state.seeds.filter(s => s.collected).length} / ${state.totalSeeds}`;
@@ -461,7 +469,7 @@ function loadLevel(index) {
       if (cell === "I") {
         state.player.x = x + 0.5;
         state.player.y = y + 0.5;
-        if (vsMode) {
+        if (coopMode) {
           // Spawn P2 one tile to the right if available, otherwise below, so it doesn't sit on top of P1.
           const rightFree = level.map[y] && level.map[y][x + 1] && level.map[y][x + 1] !== "#";
           const downFree = level.map[y + 1] && level.map[y + 1][x] && level.map[y + 1][x] !== "#";
@@ -530,13 +538,8 @@ function startGame(startIndex = 0) {
       els.hud.classList.remove("hidden");
       els.progressBar.classList.remove("hidden");
       
-      if (vsMode) {
-          document.querySelector("#p2SeedStat").classList.remove("hidden");
-          state.player2.score = 0;
-          document.querySelector("#p2SeedStat").textContent = `💜 P2: 0`;
-      } else {
-          document.querySelector("#p2SeedStat").classList.add("hidden");
-      }
+      state.player.score = 0;
+      state.player2.score = 0;
       
       loadLevel(levelIndex);
       hideOverlay();
@@ -563,7 +566,7 @@ function update(dt) {
   toastTimer = Math.max(0, toastTimer - dt);
   if (toastTimer === 0) els.toast.classList.add("hidden");
   state.player.invincible = Math.max(0, state.player.invincible - dt);
-  if (vsMode) state.player2.invincible = Math.max(0, state.player2.invincible - dt);
+  if (coopMode) state.player2.invincible = Math.max(0, state.player2.invincible - dt);
   state.screenShake = Math.max(0, state.screenShake - dt * 2);
   
   movePlayer(dt);
@@ -576,14 +579,14 @@ function update(dt) {
 }
 
 function movePlayer(dt) {
-  // Player 1
+  // Player 1 (Iris)
   let dx = 0;
   let dy = 0;
-  if (vsMode) {
-    if (keys.has("arrowleft")) dx -= 1;
-    if (keys.has("arrowright")) dx += 1;
-    if (keys.has("arrowup")) dy -= 1;
-    if (keys.has("arrowdown")) dy += 1;
+  if (coopMode) {
+    if (keys.has("a")) dx -= 1;
+    if (keys.has("d")) dx += 1;
+    if (keys.has("w")) dy -= 1;
+    if (keys.has("s")) dy += 1;
   } else {
     if (keys.has("arrowleft") || keys.has("a")) dx -= 1;
     if (keys.has("arrowright") || keys.has("d")) dx += 1;
@@ -601,14 +604,26 @@ function movePlayer(dt) {
   tryMove(state.player, dx * speed * dt, 0);
   tryMove(state.player, 0, dy * speed * dt);
 
-  // Player 2
-  if (vsMode) {
+  // Player 2 (Luna)
+  if (coopMode) {
     let dx2 = 0;
     let dy2 = 0;
-    if (keys.has("a")) dx2 -= 1;
-    if (keys.has("d")) dx2 += 1;
-    if (keys.has("w")) dy2 -= 1;
-    if (keys.has("s")) dy2 += 1;
+    if (keys.has("arrowleft")) dx2 -= 1;
+    if (keys.has("arrowright")) dx2 += 1;
+    if (keys.has("arrowup")) dy2 -= 1;
+    if (keys.has("arrowdown")) dy2 += 1;
+    
+    if (dx2 && dy2) {
+      dx2 *= Math.SQRT1_2;
+      dy2 *= Math.SQRT1_2;
+    }
+    
+    let speedMultiplier2 = currentSpeedMultiplier(state.player2);
+    const speed2 = state.player2.speed * speedMultiplier2;
+    tryMove(state.player2, dx2 * speed2 * dt, 0);
+    tryMove(state.player2, 0, dy2 * speed2 * dt);
+  }
+}
     
     if (dx2 && dy2) {
       dx2 *= Math.SQRT1_2;
@@ -687,13 +702,13 @@ function collectItems() {
         seed.collected = true;
         soundManager.playCollect();
         createParticles(seed.x * TILE, seed.y * TILE, "#f2b83d");
+        state.player.score++;
         updateSeedsHUD();
-      } else if (vsMode && distance(seed, state.player2) < 0.55) {
+      } else if (coopMode && distance(seed, state.player2) < 0.55) {
         seed.collected = true;
         soundManager.playCollect();
         createParticles(seed.x * TILE, seed.y * TILE, "#e0aaff");
         state.player2.score++;
-        document.querySelector("#p2SeedStat").textContent = `💜 P2: ${state.player2.score}`;
         updateSeedsHUD();
       }
     }
@@ -701,10 +716,17 @@ function collectItems() {
   
   function updateSeedsHUD() {
     const collectedCount = state.seeds.filter((item) => item.collected).length;
-    els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：${collectedCount} / ${state.totalSeeds}`;
+    const t = i18n[currentLang];
+    
+    if (coopMode) {
+      els.seeds.textContent = `⭐ ${t.seeds}：${collectedCount} / ${state.totalSeeds} (${t.p1Score}${state.player.score} · ${t.p2Score}${state.player2.score})`;
+    } else {
+      els.seeds.textContent = `⭐ ${t.seeds}：${collectedCount} / ${state.totalSeeds}`;
+    }
+    
     const left = state.totalSeeds - collectedCount;
     if (left === 0) {
-      showToast(i18n[currentLang].toastSeedsDone, 2);
+      showToast(t.toastSeedsDone, 2);
     }
   }
   
@@ -713,7 +735,7 @@ function collectItems() {
       state.key.collected = true;
       state.hasKey = true;
       showToast(i18n[currentLang].toastKeyFound);
-    } else if (vsMode && distance(state.key, state.player2) < 0.55) {
+    } else if (coopMode && distance(state.key, state.player2) < 0.55) {
       state.key.collected = true;
       state.hasKey = true;
       showToast(i18n[currentLang].toastKeyFound);
@@ -729,7 +751,7 @@ function collectItems() {
         soundManager.playRefill();
         createFloatingText("+1 ❤️", state.player.x, state.player.y);
       }
-    } else if (vsMode && distance(heart, state.player2) < 0.55) {
+    } else if (coopMode && distance(heart, state.player2) < 0.55) {
       heart.collected = true;
       if (hearts < MAX_HEARTS) {
         hearts += 1;
@@ -744,7 +766,7 @@ function collectItems() {
     if (distance(flower, state.player) < 0.55) {
       flower.collected = true;
       unlockFlower();
-    } else if (vsMode && distance(flower, state.player2) < 0.55) {
+    } else if (coopMode && distance(flower, state.player2) < 0.55) {
       flower.collected = true;
       unlockFlower();
     }
@@ -760,7 +782,7 @@ function collectItems() {
 }
 
 function checkShadowHits() {
-  if (state.player.invincible > 0 && (!vsMode || state.player2.invincible > 0)) return;
+  if (state.player.invincible > 0 && (!coopMode || state.player2.invincible > 0)) return;
   
   // Player 1 hit
   if (state.player.invincible === 0) {
@@ -775,7 +797,7 @@ function checkShadowHits() {
   }
   
   // Player 2 hit
-  if (vsMode && state.player2.invincible === 0) {
+  if (coopMode && state.player2.invincible === 0) {
     const hit2 = state.shadows.some((shadow) => distance(shadow, state.player2) < 0.62);
     if (hit2) {
       hearts -= 1;
@@ -791,7 +813,9 @@ function checkExit() {
   const allSeeds = state.seeds.every((seed) => seed.collected);
   const doorOpen = !state.door || state.hasKey;
   
-  if (allSeeds && doorOpen && distance(state.exit, state.player) < 0.62) {
+  const playerAtExit = distance(state.exit, state.player) < 0.62 || (coopMode && distance(state.exit, state.player2) < 0.62);
+  
+  if (allSeeds && doorOpen && playerAtExit) {
     running = false;
     showLevelCompleteScreen();
   }
@@ -815,7 +839,11 @@ function showLevelCompleteScreen() {
         const endStats = document.querySelector("#end-stats");
         const stickerContainer = document.querySelector("#sticker-container");
         
-        endStats.textContent = `Total Stars: ${stars} | Time: ${formatTime(levelTime)}`;
+        if (coopMode) {
+          endStats.textContent = `Total Stars: ${stars} | Iris Seeds: ${state.player.score} | Luna Seeds: ${state.player2.score} | Hits: ${livesLostThisLevel}`;
+        } else {
+          endStats.textContent = `Total Stars: ${stars} | Time: ${formatTime(levelTime)}`;
+        }
         
         // Populate stickers
         stickerContainer.innerHTML = "";
@@ -835,7 +863,12 @@ function showLevelCompleteScreen() {
     }
     
     document.querySelector(".stars-display").textContent = starsStr;
-    els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | ${t.time}: ${formatTime(levelTime)} | ${t.hits}: ${livesLostThisLevel}`;
+    
+    if (coopMode) {
+      els.completeStats.textContent = `Shared Seeds: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | Iris Seeds: ${state.player.score} | Luna Seeds: ${state.player2.score} | Hits: ${livesLostThisLevel}`;
+    } else {
+      els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | ${t.time}: ${formatTime(levelTime)} | ${t.hits}: ${livesLostThisLevel}`;
+    }
     
     els.completeOverlay.classList.remove("hidden");
     els.completeOverlay.setAttribute("aria-hidden", "false");
@@ -963,7 +996,7 @@ function draw() {
   drawFlowers();
   drawShadows();
   drawPlayer();
-  if (vsMode) drawPlayer2();
+  if (coopMode) drawPlayer2();
   drawParticles();
   drawHintPath();
   
@@ -1086,6 +1119,12 @@ function drawPlayer() {
   
   ctx.globalAlpha = state.player.invincible > 0 && Math.floor(sparkle * 12) % 2 === 0 ? 0.55 : 1;
   
+  // Draw glow
+  ctx.beginPath();
+  ctx.arc(x, y, 18, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 117, 140, 0.3)";
+  ctx.fill();
+
   // Draw wings
   ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
   const wingSpan = 10 + Math.sin(sparkle * 10) * 5;
@@ -1100,6 +1139,12 @@ function drawPlayer() {
   ctx.arc(x, y, 12, 0, Math.PI * 2);
   ctx.fill();
   
+  // Draw label
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 10px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("Iris", x, y - 15);
+  
   ctx.globalAlpha = 1;
 }
 
@@ -1109,6 +1154,12 @@ function drawPlayer2() {
   
   ctx.globalAlpha = state.player2.invincible > 0 && Math.floor(sparkle * 12) % 2 === 0 ? 0.55 : 1;
   
+  // Draw glow
+  ctx.beginPath();
+  ctx.arc(x, y, 18, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(123, 93, 200, 0.3)";
+  ctx.fill();
+
   // Draw wings
   ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
   const wingSpan = 10 + Math.sin(sparkle * 10) * 5;
@@ -1122,6 +1173,12 @@ function drawPlayer2() {
   ctx.beginPath();
   ctx.arc(x, y, 12, 0, Math.PI * 2);
   ctx.fill();
+  
+  // Draw label
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 10px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("Luna", x, y - 15);
   
   ctx.globalAlpha = 1;
 }
@@ -1240,25 +1297,26 @@ document.querySelector("#showStickersBtn").addEventListener("click", () => {
 });
 
 function updateVsBtnUI() {
-  const btn = document.querySelector("#vsModeBtn");
+  const btn = document.querySelector("#coopModeBtn");
   if (!btn) return;
-  if (vsMode) {
+  const t = i18n[currentLang];
+  if (coopMode) {
     btn.style.background = "#e0aaff";
     btn.style.borderColor = "#7b5dc8";
-    btn.textContent = "⚔️ Versus Mode: ON — P1 Arrows · P2 WASD";
+    btn.textContent = `${t.coopModeBtn} — ON`;
   } else {
     btn.style.background = "#fff";
     btn.style.borderColor = "#ddd1c0";
-    btn.textContent = "⚔️ Versus Mode (Shared Keyboard) — OFF";
+    btn.textContent = `${t.coopModeBtn} — OFF`;
   }
 }
 
-document.querySelector("#vsModeBtn").addEventListener("click", () => {
-  vsMode = !vsMode;
+document.querySelector("#coopModeBtn").addEventListener("click", () => {
+  coopMode = !coopMode;
   updateVsBtnUI();
   // If a level is already running, re-spawn P2 immediately so it joins the game.
   if (running) {
-    if (vsMode) {
+    if (coopMode) {
       document.querySelector("#p2SeedStat").classList.remove("hidden");
       // Re-anchor P2 next to P1
       const px = Math.floor(state.player.x);
