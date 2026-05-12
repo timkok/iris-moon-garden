@@ -25,6 +25,7 @@
         <div class="stats" aria-live="polite" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
           <span id="levelStat" class="pill">🌙 Level 1</span>
           <span id="seedStat" class="pill">⭐ Seeds: — / —</span>
+          <span id="p2SeedStat" class="pill hidden" style="background: #e0aaff;">💜 P2: 0</span>
           <span id="timeStat" class="pill">⏱ Time 0:00</span>
           <span id="heartStat" class="pill">💖 ♡♡♡</span>
           <button id="muteBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-size: 1.1rem; padding: 5px 10px;">🔇</button>
@@ -48,6 +49,11 @@
             <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
               <button id="startBtn" type="button" class="btn-primary">Start Adventure</button>
               <button id="continueBtn" type="button" class="btn-primary hidden" style="background: #2e8b68;">Continue</button>
+            </div>
+
+            <!-- Mode Selector -->
+            <div style="margin-top: 20px;">
+              <button id="vsModeBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-weight: bold;">⚔️ Versus Mode (Shared Keyboard)</button>
             </div>
 
             <!-- Level Selector -->

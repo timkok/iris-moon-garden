@@ -52,6 +52,7 @@ let cozyMode = true;
 let showHintPath = false;
 let livesLostThisLevel = 0;
 let currentLang = "en"; // Default to English as requested
+let vsMode = false;
 
 const i18n = {
     zh: {
@@ -331,6 +332,7 @@ const levels = [
 
 const state = {
   player: { x: 1.5, y: 1.5, radius: 15, speed: 4.1, invincible: 0 },
+  player2: { x: 1.5, y: 1.5, radius: 15, speed: 4.1, score: 0 },
   seeds: [],
   key: null,
   hasKey: false,
@@ -386,6 +388,10 @@ function loadLevel(index) {
       if (cell === "I") {
         state.player.x = x + 0.5;
         state.player.y = y + 0.5;
+        if (vsMode) {
+          state.player2.x = x + 0.5;
+          state.player2.y = y + 0.5;
+        }
       }
       if (cell === "*") state.seeds.push({ x: x + 0.5, y: y + 0.5, collected: false });
       if (cell === "K") state.key = { x: x + 0.5, y: y + 0.5, collected: false };
@@ -438,6 +444,14 @@ function startGame(startIndex = 0) {
       els.hud.classList.remove("hidden");
       els.progressBar.classList.remove("hidden");
       
+      if (vsMode) {
+          document.querySelector("#p2SeedStat").classList.remove("hidden");
+          state.player2.score = 0;
+          document.querySelector("#p2SeedStat").textContent = `💜 P2: 0`;
+      } else {
+          document.querySelector("#p2SeedStat").classList.add("hidden");
+      }
+      
       loadLevel(levelIndex);
       hideOverlay();
       requestAnimationFrame(loop);
@@ -463,6 +477,7 @@ function update(dt) {
   toastTimer = Math.max(0, toastTimer - dt);
   if (toastTimer === 0) els.toast.classList.add("hidden");
   state.player.invincible = Math.max(0, state.player.invincible - dt);
+  if (vsMode) state.player2.invincible = Math.max(0, state.player2.invincible - dt);
   state.screenShake = Math.max(0, state.screenShake - dt * 2);
   
   movePlayer(dt);
@@ -475,12 +490,20 @@ function update(dt) {
 }
 
 function movePlayer(dt) {
+  // Player 1
   let dx = 0;
   let dy = 0;
-  if (keys.has("arrowleft") || keys.has("a")) dx -= 1;
-  if (keys.has("arrowright") || keys.has("d")) dx += 1;
-  if (keys.has("arrowup") || keys.has("w")) dy -= 1;
-  if (keys.has("arrowdown") || keys.has("s")) dy += 1;
+  if (vsMode) {
+    if (keys.has("arrowleft")) dx -= 1;
+    if (keys.has("arrowright")) dx += 1;
+    if (keys.has("arrowup")) dy -= 1;
+    if (keys.has("arrowdown")) dy += 1;
+  } else {
+    if (keys.has("arrowleft") || keys.has("a")) dx -= 1;
+    if (keys.has("arrowright") || keys.has("d")) dx += 1;
+    if (keys.has("arrowup") || keys.has("w")) dy -= 1;
+    if (keys.has("arrowdown") || keys.has("s")) dy += 1;
+  }
 
   if (dx && dy) {
     dx *= Math.SQRT1_2;
@@ -553,58 +576,110 @@ function moveShadows(dt) {
 
 function collectItems() {
   state.seeds.forEach((seed) => {
-    if (!seed.collected && distance(seed, state.player) < 0.55) {
-      seed.collected = true;
-      soundManager.playCollect();
-      createParticles(seed.x * TILE, seed.y * TILE, "#f2b83d");
-      const collectedCount = state.seeds.filter((item) => item.collected).length;
-      els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：${collectedCount} / ${state.totalSeeds}`;
-      
-      const left = state.totalSeeds - collectedCount;
-      if (left === 0) {
-        showToast(i18n[currentLang].toastSeedsDone, 2);
+    if (!seed.collected) {
+      if (distance(seed, state.player) < 0.55) {
+        seed.collected = true;
+        soundManager.playCollect();
+        createParticles(seed.x * TILE, seed.y * TILE, "#f2b83d");
+        updateSeedsHUD();
+      } else if (vsMode && distance(seed, state.player2) < 0.55) {
+        seed.collected = true;
+        soundManager.playCollect();
+        createParticles(seed.x * TILE, seed.y * TILE, "#e0aaff");
+        state.player2.score++;
+        document.querySelector("#p2SeedStat").textContent = `💜 P2: ${state.player2.score}`;
+        updateSeedsHUD();
       }
     }
   });
   
-  if (state.key && !state.key.collected && distance(state.key, state.player) < 0.55) {
-    state.key.collected = true;
-    state.hasKey = true;
-    showToast(i18n[currentLang].toastKeyFound);
+  function updateSeedsHUD() {
+    const collectedCount = state.seeds.filter((item) => item.collected).length;
+    els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：${collectedCount} / ${state.totalSeeds}`;
+    const left = state.totalSeeds - collectedCount;
+    if (left === 0) {
+      showToast(i18n[currentLang].toastSeedsDone, 2);
+    }
+  }
+  
+  if (state.key && !state.key.collected) {
+    if (distance(state.key, state.player) < 0.55) {
+      state.key.collected = true;
+      state.hasKey = true;
+      showToast(i18n[currentLang].toastKeyFound);
+    } else if (vsMode && distance(state.key, state.player2) < 0.55) {
+      state.key.collected = true;
+      state.hasKey = true;
+      showToast(i18n[currentLang].toastKeyFound);
+    }
   }
   
   state.heartPickups.forEach((heart) => {
-    if (heart.collected || distance(heart, state.player) >= 0.55) return;
-    heart.collected = true;
-    if (hearts < MAX_HEARTS) {
-      hearts += 1;
-      soundManager.playRefill();
-      createFloatingText("+1 ❤️", state.player.x, state.player.y);
+    if (heart.collected) return;
+    if (distance(heart, state.player) < 0.55) {
+      heart.collected = true;
+      if (hearts < MAX_HEARTS) {
+        hearts += 1;
+        soundManager.playRefill();
+        createFloatingText("+1 ❤️", state.player.x, state.player.y);
+      }
+    } else if (vsMode && distance(heart, state.player2) < 0.55) {
+      heart.collected = true;
+      if (hearts < MAX_HEARTS) {
+        hearts += 1;
+        soundManager.playRefill();
+        createFloatingText("+1 ❤️", state.player2.x, state.player2.y);
+      }
     }
   });
 
   state.flowers.forEach((flower) => {
-    if (!flower.collected && distance(flower, state.player) < 0.55) {
+    if (flower.collected) return;
+    if (distance(flower, state.player) < 0.55) {
       flower.collected = true;
+      unlockFlower();
+    } else if (vsMode && distance(flower, state.player2) < 0.55) {
+      flower.collected = true;
+      unlockFlower();
+    }
+    
+    function unlockFlower() {
       const stickerName = levels[levelIndex].sticker;
       localStorage.setItem("moonGardenSticker_" + levelIndex, stickerName);
       showToast(`Unlocked Sticker: ${stickerName}!`, 2);
       createParticles(flower.x * TILE, flower.y * TILE, "#e0aaff");
-      soundManager.playRefill(); // Reuse refill sound for now
+      soundManager.playRefill();
     }
   });
 }
 
 function checkShadowHits() {
-  if (state.player.invincible > 0) return;
-  const hit = state.shadows.some((shadow) => distance(shadow, state.player) < 0.62);
-  if (!hit) return;
+  if (state.player.invincible > 0 && (!vsMode || state.player2.invincible > 0)) return;
   
-  hearts -= 1;
-  livesLostThisLevel++;
-  state.player.invincible = 2.0;
-  state.screenShake = 0.3;
-  soundManager.playHit();
+  // Player 1 hit
+  if (state.player.invincible === 0) {
+    const hit = state.shadows.some((shadow) => distance(shadow, state.player) < 0.62);
+    if (hit) {
+      hearts -= 1;
+      livesLostThisLevel++;
+      state.player.invincible = 2.0;
+      state.screenShake = 0.3;
+      soundManager.playHit();
+    }
+  }
+  
+  // Player 2 hit
+  if (vsMode && state.player2.invincible === 0) {
+    const hit2 = state.shadows.some((shadow) => distance(shadow, state.player2) < 0.62);
+    if (hit2) {
+      hearts -= 1;
+      livesLostThisLevel++;
+      state.player2.invincible = 2.0;
+      state.screenShake = 0.3;
+      soundManager.playHit();
+    }
+  }
+}
   
   const level = levels[levelIndex];
   level.map.forEach((row, y) => {
@@ -805,6 +880,7 @@ function draw() {
   drawFlowers();
   drawShadows();
   drawPlayer();
+  if (vsMode) drawPlayer2();
   drawParticles();
   drawHintPath();
   
@@ -944,6 +1020,29 @@ function drawPlayer() {
   ctx.globalAlpha = 1;
 }
 
+function drawPlayer2() {
+  const x = state.player2.x * TILE;
+  const y = state.player2.y * TILE;
+  
+  ctx.globalAlpha = state.player2.invincible > 0 && Math.floor(sparkle * 12) % 2 === 0 ? 0.55 : 1;
+  
+  // Draw wings
+  ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+  const wingSpan = 10 + Math.sin(sparkle * 10) * 5;
+  ctx.beginPath();
+  ctx.ellipse(x - 8, y - 5, 12, wingSpan, Math.PI / 4, 0, Math.PI * 2);
+  ctx.ellipse(x + 8, y - 5, 12, wingSpan, -Math.PI / 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw body
+  ctx.fillStyle = "#7b5dc8"; // Purple for P2
+  ctx.beginPath();
+  ctx.arc(x, y, 12, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.globalAlpha = 1;
+}
+
 function drawHintPath() {
     if (!showHintPath) return;
     
@@ -1055,6 +1154,20 @@ document.querySelector("#playAgainBtn").addEventListener("click", () => {
 
 document.querySelector("#showStickersBtn").addEventListener("click", () => {
     alert("Your stickers are displayed above!");
+});
+
+document.querySelector("#vsModeBtn").addEventListener("click", () => {
+    vsMode = !vsMode;
+    const btn = document.querySelector("#vsModeBtn");
+    if (vsMode) {
+        btn.style.background = "#e0aaff";
+        btn.style.borderColor = "#7b5dc8";
+        alert("Versus Mode ON! Player 1 uses Arrows, Player 2 uses WASD.");
+    } else {
+        btn.style.background = "#fff";
+        btn.style.borderColor = "#ddd1c0";
+        alert("Versus Mode OFF!");
+    }
 });
 
 function populateLevelSelector() {
