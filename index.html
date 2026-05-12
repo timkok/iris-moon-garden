@@ -16,19 +16,18 @@
         <button id="langBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0;">中文</button>
       </div>
 
-      <!-- Topbar with HUD (Redesigned to match reference) -->
-      <div class="topbar" id="hud" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px; margin-bottom: 15px; border: 1px solid #ddd1c0;">
+      <!-- Topbar with HUD (hidden until a level starts) -->
+      <div class="topbar hidden" id="hud" hidden aria-hidden="true" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px; margin-bottom: 15px; border: 1px solid #ddd1c0;">
         <div>
           <h1 id="hud-title" style="font-size: 1.6rem; margin: 0; color: #243044; font-family: 'Outfit', sans-serif;">Iris and the Moonlit Garden</h1>
-          <p id="missionText" style="margin: 5px 0 0; color: #657189; font-size: 0.95rem;">Help Iris wake the sleeping stars and open the moon gate.</p>
+          <p id="missionText" style="margin: 5px 0 0; color: #657189; font-size: 0.95rem;"></p>
         </div>
         <div class="stats" aria-live="polite" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
           <span id="levelStat" class="pill">🌙 Level 1</span>
           <span id="seedStat" class="pill">⭐ Seeds: — / —</span>
-          <span id="p2SeedStat" class="pill hidden" style="background: #e0aaff;">💜 P2: 0</span>
           <span id="timeStat" class="pill">⏱ Time 0:00</span>
           <span id="heartStat" class="pill">💖 ♡♡♡</span>
-          <button id="muteBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-size: 1.1rem; padding: 5px 10px;">🔇</button>
+          <button id="muteBtn" class="pill" type="button" aria-label="Toggle sound" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-size: 1.1rem; padding: 5px 10px;">🔇</button>
         </div>
       </div>
 
@@ -44,16 +43,17 @@
         <div id="overlay" class="overlay">
           <div class="overlay-panel">
             <h2 id="story-title" style="font-size: 1.5rem; color: #2e8b68; margin-bottom: 15px;">The Sleeping Stars</h2>
-            <p id="overlayCopy">Iris is on a magical journey to wake the sleeping stars. Help her navigate the garden and find the star seeds!</p>
-            
-            <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
+            <p id="overlayCopy"></p>
+
+            <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 220px; margin: 0 auto;">
               <button id="startBtn" type="button" class="btn-primary">Start Adventure</button>
-              <button id="continueBtn" type="button" class="btn-primary hidden" style="background: #2e8b68;">Continue</button>
+              <button id="continueBtn" type="button" class="btn-primary hidden" hidden aria-hidden="true" style="background: #2e8b68;">Continue</button>
             </div>
 
             <!-- Mode Selector -->
             <div style="margin-top: 20px;">
-              <button id="coopModeBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-weight: bold;">👯 Two-player: Iris + Luna</button>
+              <button id="coopModeBtn" type="button" aria-pressed="false" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-weight: bold;">👯 Two-player Co-op: Iris + Luna</button>
+              <p id="coopHelp" style="margin: 8px 0 0; color: #657189; font-size: 0.8rem;">Both players help collect star seeds and open the moon gate together.</p>
             </div>
 
             <!-- Level Selector -->
@@ -66,27 +66,29 @@
           </div>
         </div>
 
-        <!-- Level Complete Overlay -->
+        <!-- Level Complete Overlay (hidden until a level is completed) -->
         <div id="complete-overlay" class="overlay hidden" aria-hidden="true" hidden>
           <div class="overlay-panel">
-            <h2 style="color: #2e8b68;" id="complete-title">Level Complete!</h2>
+            <h2 style="color: #2e8b68;" id="complete-title"></h2>
             <div class="stars-display" style="font-size: 2rem; color: #ffd700; margin: 10px 0;"></div>
             <p id="complete-stats" style="margin-bottom: 15px;"></p>
-            <button id="nextLevelBtn" class="btn-primary">Next Level</button>
+            <button id="nextLevelBtn" type="button" class="btn-primary"></button>
           </div>
         </div>
 
-        <!-- End Screen Overlay -->
+        <!-- End Screen Overlay (hidden until the final level is completed) -->
         <div id="end-overlay" class="overlay hidden" aria-hidden="true" hidden>
           <div class="overlay-panel">
-            <h2 style="color: #7b5dc8;" id="end-title">The Moon Garden is glowing again!</h2>
+            <h2 style="color: #7b5dc8;" id="end-title"></h2>
             <p id="end-stats" style="margin-bottom: 15px;"></p>
+            <p id="end-flowers" style="margin: 4px 0; color: #2e8b68; font-weight: 700;"></p>
+            <p id="end-stickers" style="margin: 4px 0 14px; color: #7b5dc8; font-weight: 700;"></p>
             <div id="sticker-container" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
               <!-- Stickers will be inserted here -->
             </div>
             <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
-              <button id="playAgainBtn" class="btn-primary">Play Again</button>
-              <button id="showStickersBtn" class="btn-primary" style="background: #2e8b68;">Sticker Book</button>
+              <button id="playAgainBtn" type="button" class="btn-primary"></button>
+              <button id="showStickersBtn" type="button" class="btn-primary" style="background: #2e8b68;"></button>
             </div>
           </div>
         </div>
@@ -96,7 +98,7 @@
         <button id="restartBtn" type="button">Restart</button>
         <button id="pauseBtn" type="button">Pause</button>
         <button id="helpBtn" type="button">Hint / Help me</button>
-        <p class="hint" id="hint-text">Player 1: WASD · Player 2: Arrow Keys · Space: Pause</p>
+        <p class="hint" id="hint-text">Solo: Arrow Keys or WASD to move · Space to pause</p>
         
         <!-- Mobile D-Pad (Hidden on desktop via CSS) -->
         <div class="pad" aria-label="Directional Controls">
@@ -111,8 +113,8 @@
 
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
-  <script src="./audio.js?v=105"></script>
-  <script src="./game.js?v=105"></script>
+  <script src="./audio.js?v=106"></script>
+  <script src="./game.js?v=106"></script>
   <script src="./bot.js"></script>
 </body>
 </html>

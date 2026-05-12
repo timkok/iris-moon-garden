@@ -30,6 +30,19 @@ const els = {
   cozyLabel: document.querySelector("#cozy-label"),
   hintText: document.querySelector("#hint-text"),
   hudTitle: document.querySelector("#hud-title"),
+  storyTitle: document.querySelector("#story-title"),
+  coopBtn: document.querySelector("#coopModeBtn"),
+  coopHelp: document.querySelector("#coopHelp"),
+  endOverlay: document.querySelector("#end-overlay"),
+  endTitle: document.querySelector("#end-title"),
+  endStats: document.querySelector("#end-stats"),
+  endFlowers: document.querySelector("#end-flowers"),
+  endStickers: document.querySelector("#end-stickers"),
+  playAgain: document.querySelector("#playAgainBtn"),
+  showStickers: document.querySelector("#showStickersBtn"),
+  stickerContainer: document.querySelector("#sticker-container"),
+  levelSelector: document.querySelector("#level-selector"),
+  starsDisplay: document.querySelector(".stars-display"),
 };
 
 const TILE = 48;
@@ -58,21 +71,27 @@ const i18n = {
     zh: {
         title: "Iris 与月光花园",
         intro: "帮助 Iris 唤醒沉睡的星星，打开月光门。",
-        cozyLabel: "温馨模式 (更轻松)：",
-        startBtn: "开始冒险",
+        storyTitle: "沉睡的星星",
+        cozyLabel: "温馨模式：更多生命 · 阴影更慢 · 没有计时压力",
+        startBtn: "开始新冒险",
+        continueBtn: "继续游戏",
+        continueFrom: "从第 {n} 关继续",
         restartBtn: "重新开始",
         pauseBtn: "暂停",
         pauseBtnActive: "继续",
-        helpBtn: "帮我一下",
+        helpBtn: "提示 / 帮我一下",
         helpBtnActive: "隐藏指引",
-        hintText: "玩家 1: WASD · 玩家 2: 方向键 · 空格: 暂停",
+        hintSolo: "单人：方向键或 WASD 移动 · 空格暂停",
+        hintCoop: "双人：Iris = WASD · Luna = 方向键 · 空格 = 暂停",
         completeTitle: "闯关成功！",
         nextLevelBtn: "下一关",
         playAgainBtn: "再玩一次",
+        stickerBookBtn: "贴纸册",
         seeds: "星种子",
         time: "时间",
         hearts: "生命",
         hits: "扣血",
+        collectSeedsLabel: "收集星种子",
         toastSeedsDone: "星光种子收集完成！月光门打开啦！",
         toastKeyFound: "彩虹钥匙找到了！",
         toastHeartRefill: "生命恢复。",
@@ -80,35 +99,50 @@ const i18n = {
         toastGameOver: "生命耗尽。",
         toastGateNeedSeeds: "大门需要集齐所有星光种子才能打开。",
         toastGateNeedKey: "彩虹门需要钥匙。",
+        toastFlower: "你找到一朵月光花！",
         missionText: "寻找钥匙",
         keyFoundText: "钥匙已找到",
         readyTitle: "准备好了吗，Iris？",
         retryTitle: "这次飞得很棒！",
         retryCopy: "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？",
-        endTitle: "大功告成！",
-        endCopy: "月光花园再次闪耀！你完成了所有冒险。",
-        coopModeBtn: "👯 双人模式：Iris + Luna",
-        p1Score: "Iris: ",
-        p2Score: "Luna: "
+        endTitle: "月光花园再次闪耀！",
+        endCopy: "你和小伙伴完成了所有冒险。",
+        coopBtnOff: "👯 双人合作：Iris + Luna（已关闭）",
+        coopBtnOn: "👯 双人合作：Iris + Luna（已开启）",
+        coopHelp: "两位小伙伴一起收集星种子，一起打开月光门。",
+        flowersFound: "找到的月光花：{n} / {total}",
+        stickersUnlocked: "解锁的贴纸：{n} / {total}",
+        irisLabel: "Iris",
+        lunaLabel: "Luna",
+        selectLevel: "选择关卡",
+        muteOn: "开启声音",
+        muteOff: "静音",
+        keyLine: "先找到月亮钥匙，再收集所有星种子打开月光门。"
     },
     en: {
         title: "Iris and the Moonlit Garden",
         intro: "Help Iris wake the sleeping stars and open the moon gate.",
+        storyTitle: "The Sleeping Stars",
         cozyLabel: "Cozy Mode: more lives, slower shadows, and no timer pressure.",
         startBtn: "Start Adventure",
+        continueBtn: "Continue",
+        continueFrom: "Continue from Level {n}",
         restartBtn: "Restart",
         pauseBtn: "Pause",
         pauseBtnActive: "Resume",
         helpBtn: "Hint / Help me",
         helpBtnActive: "Hide Hint",
-        hintText: "Player 1: WASD · Player 2: Arrow Keys · Space: Pause",
+        hintSolo: "Solo: Arrow Keys or WASD to move · Space to pause",
+        hintCoop: "Two-player: Iris = WASD · Luna = Arrow Keys · Space = Pause",
         completeTitle: "Level Complete!",
         nextLevelBtn: "Next Level",
         playAgainBtn: "Play Again",
+        stickerBookBtn: "Sticker Book",
         seeds: "Seeds",
         time: "Time",
         hearts: "Hearts",
         hits: "Hits",
+        collectSeedsLabel: "Collect star seeds",
         toastSeedsDone: "All star seeds collected! Moon gate opened!",
         toastKeyFound: "Rainbow key found!",
         toastHeartRefill: "Hearts refilled.",
@@ -116,22 +150,31 @@ const i18n = {
         toastGameOver: "No hearts left.",
         toastGateNeedSeeds: "Collect all star seeds to open the gate.",
         toastGateNeedKey: "The gate requires a key.",
+        toastFlower: "You found a hidden moon flower!",
         missionText: "Find Key",
         keyFoundText: "Key Found",
         readyTitle: "Ready, Iris?",
         retryTitle: "Great flight!",
         retryCopy: "Try again, Iris is getting closer to the Moon Tree. Want to try Cozy Mode?",
-        endTitle: "Well Done!",
-        endCopy: "The Moon Garden is glowing again! You completed all adventures.",
-        coopModeBtn: "👯 Two-player: Iris + Luna",
-        p1Score: "Iris: ",
-        p2Score: "Luna: "
+        endTitle: "The Moon Garden is glowing again!",
+        endCopy: "You and your friend completed every adventure.",
+        coopBtnOff: "👯 Two-player Co-op: Iris + Luna (OFF)",
+        coopBtnOn: "👯 Two-player Co-op: Iris + Luna (ON)",
+        coopHelp: "Both players help collect star seeds and open the moon gate together.",
+        flowersFound: "Moon Flowers Found: {n} / {total}",
+        stickersUnlocked: "Stickers Unlocked: {n} / {total}",
+        irisLabel: "Iris",
+        lunaLabel: "Luna",
+        selectLevel: "Select Level",
+        muteOn: "Sound on",
+        muteOff: "Sound off",
+        keyLine: "Find the moon key first, then collect every star seed to open the gate."
     }
 };
 
 const levels = [
   {
-    names: { zh: "第 1 关：唤醒沉睡的花朵", en: "Level 1: Wake the sleeping stars" },
+    names: { zh: "第 1 关：唤醒沉睡的花朵", en: "Level 1: Wake the sleeping flowers" },
     missions: { zh: "收集所有星光种子，然后走进发光的月光门。本关没有敌人哦！", en: "Collect all star seeds and enter the glowing gate. No enemies here!" },
     map: [
       "####################",
@@ -171,7 +214,7 @@ const levels = [
     sticker: "Star Bunny"
   },
   {
-    names: { zh: "第 3 关：避开跳舞的阴影", en: "Level 3: Avoid the dancing shadows" },
+    names: { zh: "第 3 关：避开跳舞的阴影", en: "Level 3: Dodge the dancing shadows" },
     missions: { zh: "本关引入了一个缓慢移动的阴影，小心避开它！", en: "Avoid the slow moving shadow!" },
     map: [
       "####################",
@@ -427,28 +470,83 @@ const state = {
   screenShake: 0,
 };
 
+function tt(key, vars = {}) {
+  const v = i18n[currentLang][key] ?? i18n.en[key] ?? "";
+  return v.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : ""));
+}
+
 function switchLanguage(lang) {
     currentLang = lang;
     els.langBtn.textContent = lang === "zh" ? "English" : "中文";
-    
+    els.langBtn.setAttribute("aria-label", lang === "zh" ? "Switch to English" : "切换到中文");
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+
     const t = i18n[lang];
-    els.mission.textContent = t.intro;
-    els.hudTitle.textContent = t.title; // Fix HUD title translation
+    els.hudTitle.textContent = t.title;
+    if (els.storyTitle) els.storyTitle.textContent = t.storyTitle;
     els.overlayCopy.textContent = t.intro;
     els.start.textContent = t.startBtn;
     els.restart.textContent = t.restartBtn;
     els.pause.textContent = paused ? t.pauseBtnActive : t.pauseBtn;
     els.help.textContent = showHintPath ? t.helpBtnActive : t.helpBtn;
-    els.hintText.textContent = t.hintText;
     els.completeTitle.textContent = t.completeTitle;
     els.nextLevel.textContent = t.nextLevelBtn;
-    
-    updateVsBtnUI();
-    
-    if (running) {
+    if (els.endTitle) els.endTitle.textContent = t.endTitle;
+    if (els.playAgain) els.playAgain.textContent = t.playAgainBtn;
+    if (els.showStickers) els.showStickers.textContent = t.stickerBookBtn;
+    if (els.coopHelp) els.coopHelp.textContent = t.coopHelp;
+    updateContinueButton();
+    updateModeUI();
+    populateLevelSelector();
+
+    if (running && levels[levelIndex]) {
         els.level.textContent = `🌙 ${levels[levelIndex].names[lang]}`;
-        els.seeds.textContent = `⭐ ${t.seeds}：${state.seeds.filter(s => s.collected).length} / ${state.totalSeeds}`;
+        els.mission.textContent = levels[levelIndex].missions[lang];
+        updateSeedsDisplay();
+    } else {
+        els.mission.textContent = "";
     }
+}
+
+function updateModeUI() {
+  const t = i18n[currentLang];
+  if (els.coopBtn) {
+    els.coopBtn.textContent = coopMode ? t.coopBtnOn : t.coopBtnOff;
+    els.coopBtn.setAttribute("aria-pressed", String(coopMode));
+    els.coopBtn.style.background = coopMode ? "#e0aaff" : "#fff";
+    els.coopBtn.style.borderColor = coopMode ? "#7b5dc8" : "#ddd1c0";
+  }
+  if (els.hintText) els.hintText.textContent = coopMode ? t.hintCoop : t.hintSolo;
+}
+
+function updateContinueButton() {
+  if (!els.continue) return;
+  const t = i18n[currentLang];
+  const saved = parseInt(localStorage.getItem("moonGardenProgress") || "0", 10);
+  if (saved > 0 && saved < levels.length) {
+    els.continue.hidden = false;
+    els.continue.removeAttribute("aria-hidden");
+    els.continue.classList.remove("hidden");
+    els.continue.textContent = tt("continueFrom", { n: saved + 1 });
+  } else {
+    els.continue.hidden = true;
+    els.continue.setAttribute("aria-hidden", "true");
+    els.continue.classList.add("hidden");
+  }
+}
+
+function updateSeedsDisplay() {
+  const collectedCount = state.seeds.filter((s) => s.collected).length;
+  const t = i18n[currentLang];
+  if (!running) {
+    els.seeds.textContent = `⭐ ${t.seeds}: — / —`;
+    return;
+  }
+  if (coopMode) {
+    els.seeds.textContent = `⭐ ${t.seeds}: ${collectedCount} / ${state.totalSeeds} · ${t.irisLabel} ${state.player.score} · ${t.lunaLabel} ${state.player2.score}`;
+  } else {
+    els.seeds.textContent = `⭐ ${t.seeds}: ${collectedCount} / ${state.totalSeeds}`;
+  }
 }
 
 function loadLevel(index) {
@@ -503,13 +601,17 @@ function loadLevel(index) {
   levelTime = 0;
   livesLostThisLevel = 0;
   
-  els.mission.textContent = level.missions[currentLang];
+  els.mission.textContent = state.key
+    ? i18n[currentLang].keyLine
+    : level.missions[currentLang];
   els.level.textContent = `🌙 ${level.names[currentLang]}`;
-  els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：0 / ${state.totalSeeds}`;
-  
+  state.player.score = 0;
+  state.player2.score = 0;
+  updateSeedsDisplay();
+
   // Show level intro title overlay (briefly)
   showToast(level.names[currentLang], 2.5);
-  
+
   updateHud();
 }
 
@@ -537,12 +639,16 @@ function startGame(startIndex = 0) {
       els.pause.textContent = i18n[currentLang].pauseBtn;
       
       els.hud.classList.remove("hidden");
+      els.hud.hidden = false;
+      els.hud.setAttribute("aria-hidden", "false");
       els.progressBar.classList.remove("hidden");
-      
+      els.progressBar.hidden = false;
+
       state.player.score = 0;
       state.player2.score = 0;
-      
+
       loadLevel(levelIndex);
+      updateModeUI();
       hideOverlay();
       requestAnimationFrame(loop);
       console.log("Game started successfully");
@@ -703,18 +809,10 @@ function collectItems() {
   });
   
   function updateSeedsHUD() {
+    updateSeedsDisplay();
     const collectedCount = state.seeds.filter((item) => item.collected).length;
-    const t = i18n[currentLang];
-    
-    if (coopMode) {
-      els.seeds.textContent = `⭐ ${t.seeds}：${collectedCount} / ${state.totalSeeds} (${t.p1Score}${state.player.score} · ${t.p2Score}${state.player2.score})`;
-    } else {
-      els.seeds.textContent = `⭐ ${t.seeds}：${collectedCount} / ${state.totalSeeds}`;
-    }
-    
-    const left = state.totalSeeds - collectedCount;
-    if (left === 0) {
-      showToast(t.toastSeedsDone, 2);
+    if (state.totalSeeds - collectedCount === 0) {
+      showToast(i18n[currentLang].toastSeedsDone, 2);
     }
   }
   
@@ -762,7 +860,8 @@ function collectItems() {
     function unlockFlower() {
       const stickerName = levels[levelIndex].sticker;
       localStorage.setItem("moonGardenSticker_" + levelIndex, stickerName);
-      showToast(`Unlocked Sticker: ${stickerName}!`, 2);
+      localStorage.setItem("moonGardenFlower_" + levelIndex, "1");
+      showToast(`${i18n[currentLang].toastFlower} ⭐ ${stickerName}`, 2.4);
       createParticles(flower.x * TILE, flower.y * TILE, "#e0aaff");
       soundManager.playRefill();
     }
@@ -809,67 +908,89 @@ function checkExit() {
   }
 }
 
+function countFoundFlowers() {
+  let n = 0;
+  for (let i = 0; i < levels.length; i++) {
+    if (localStorage.getItem("moonGardenFlower_" + i)) n++;
+  }
+  return n;
+}
+function countUnlockedStickers() {
+  let n = 0;
+  for (let i = 0; i < levels.length; i++) {
+    if (localStorage.getItem("moonGardenSticker_" + i)) n++;
+  }
+  return n;
+}
+
 function showLevelCompleteScreen() {
     let stars = 0;
     const allSeeds = state.seeds.every(s => s.collected);
     if (allSeeds) stars++;
     if (livesLostThisLevel === 0) stars++;
-    const flowerCollected = state.flowers.every(f => f.collected);
+    const flowerCollected = state.flowers.length > 0 && state.flowers.every(f => f.collected);
     if (flowerCollected) stars++;
-    
-    let starsStr = "⭐".repeat(stars) + "☆".repeat(3 - stars);
-    
+
+    const starsStr = "⭐".repeat(stars) + "☆".repeat(3 - stars);
     const t = i18n[currentLang];
-    
+    localStorage.setItem("moonGardenProgress", levelIndex + 1);
+
     if (levelIndex === levels.length - 1) {
-        // Final Level! Show End Screen
-        const endOverlay = document.querySelector("#end-overlay");
-        const endStats = document.querySelector("#end-stats");
-        const stickerContainer = document.querySelector("#sticker-container");
-        
-        if (coopMode) {
-          endStats.textContent = `Total Stars: ${stars} | Iris Seeds: ${state.player.score} | Luna Seeds: ${state.player2.score} | Hits: ${livesLostThisLevel}`;
-        } else {
-          endStats.textContent = `Total Stars: ${stars} | Time: ${formatTime(levelTime)}`;
+        const totalLevels = levels.length;
+        if (els.endStats) {
+          if (coopMode) {
+            els.endStats.textContent = `⭐ ${stars}★ · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
+          } else {
+            els.endStats.textContent = `⭐ ${stars}★ · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
+          }
         }
-        
-        // Populate stickers
-        stickerContainer.innerHTML = "";
-        levels.forEach((lvl, idx) => {
+        if (els.endFlowers) els.endFlowers.textContent = tt("flowersFound", { n: countFoundFlowers(), total: totalLevels });
+        if (els.endStickers) els.endStickers.textContent = tt("stickersUnlocked", { n: countUnlockedStickers(), total: totalLevels });
+
+        if (els.stickerContainer) {
+          els.stickerContainer.innerHTML = "";
+          levels.forEach((lvl, idx) => {
             const unlocked = localStorage.getItem("moonGardenSticker_" + idx);
             const stickerEl = document.createElement("div");
             stickerEl.className = "pill";
             stickerEl.style.background = unlocked ? "#e0aaff" : "#eee";
-            stickerEl.textContent = unlocked ? lvl.sticker : "???";
-            stickerContainer.appendChild(stickerEl);
-        });
-        
-        endOverlay.classList.remove("hidden");
-        endOverlay.setAttribute("aria-hidden", "false");
+            stickerEl.style.color = unlocked ? "#fff" : "#999";
+            stickerEl.style.filter = unlocked ? "none" : "grayscale(1)";
+            stickerEl.textContent = unlocked ? `⭐ ${lvl.sticker}` : "🌑";
+            stickerEl.title = unlocked ? lvl.sticker : "???";
+            els.stickerContainer.appendChild(stickerEl);
+          });
+        }
+
+        els.endOverlay.classList.remove("hidden");
+        els.endOverlay.hidden = false;
+        els.endOverlay.setAttribute("aria-hidden", "false");
         soundManager.playWin();
         return;
     }
-    
-    document.querySelector(".stars-display").textContent = starsStr;
-    
+
+    if (els.starsDisplay) els.starsDisplay.textContent = starsStr;
+
     if (coopMode) {
-      els.completeStats.textContent = `Shared Seeds: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | Iris Seeds: ${state.player.score} | Luna Seeds: ${state.player2.score} | Hits: ${livesLostThisLevel}`;
+      els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} · ${t.irisLabel} ${state.player.score} · ${t.lunaLabel} ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
     } else {
-      els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | ${t.time}: ${formatTime(levelTime)} | ${t.hits}: ${livesLostThisLevel}`;
+      els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
     }
-    
+
     els.completeOverlay.classList.remove("hidden");
+    els.completeOverlay.hidden = false;
     els.completeOverlay.setAttribute("aria-hidden", "false");
     soundManager.playWin();
-    localStorage.setItem("moonGardenProgress", levelIndex + 1);
 }
 
 els.nextLevel.addEventListener("click", () => {
     els.completeOverlay.classList.add("hidden");
+    els.completeOverlay.hidden = true;
     els.completeOverlay.setAttribute("aria-hidden", "true");
     levelIndex++;
     if (levelIndex >= levels.length) {
-        showOverlay(i18n[currentLang].endTitle, i18n[currentLang].endCopy, i18n[currentLang].playAgainBtn, "start");
+        // Show the end overlay rather than reusing the start overlay
+        showLevelCompleteScreen();
         return;
     }
     loadLevel(levelIndex);
@@ -1199,8 +1320,10 @@ function drawHintPath() {
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
-  // Prevent scrolling for arrow keys and space
+  // Prevent scrolling for arrow keys and space (and for WASD while playing)
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
+    event.preventDefault();
+  } else if (running && ["w", "a", "s", "d"].includes(key)) {
     event.preventDefault();
   }
   keys.add(key);
@@ -1213,12 +1336,11 @@ window.addEventListener("keydown", (event) => {
 window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
 
 els.start.addEventListener("click", () => {
-  if (overlayAction === "retry") {
-    levelIndex = 0;
-    startGame();
-  } else {
-    startGame();
-  }
+  // Start Adventure always begins a fresh game from level 1
+  localStorage.removeItem("moonGardenProgress");
+  levelIndex = 0;
+  startGame(0);
+  updateContinueButton();
 });
 
 els.restart.addEventListener("click", () => {
@@ -1255,77 +1377,52 @@ document.querySelectorAll(".pad button").forEach((button) => {
   button.addEventListener("pointerleave", () => keys.delete(key));
 });
 
-// Init
-switchLanguage("en"); // Default to English as requested
-
-const savedProgress = localStorage.getItem("moonGardenProgress");
-if (savedProgress) {
-    const nextLevel = parseInt(savedProgress, 10);
-    if (nextLevel < levels.length) {
-        els.continue.classList.remove("hidden");
-        els.continue.textContent = `Continue Level ${nextLevel + 1}`;
-    }
-}
-
 els.continue.addEventListener("click", () => {
-    const progress = localStorage.getItem("moonGardenProgress");
-    if (progress) {
-        startGame(parseInt(progress, 10));
-    }
+    const progress = parseInt(localStorage.getItem("moonGardenProgress") || "0", 10);
+    if (progress > 0 && progress < levels.length) startGame(progress);
 });
 
 document.querySelector("#playAgainBtn").addEventListener("click", () => {
-    document.querySelector("#end-overlay").classList.add("hidden");
+    els.endOverlay.classList.add("hidden");
+    els.endOverlay.hidden = true;
+    els.endOverlay.setAttribute("aria-hidden", "true");
     localStorage.removeItem("moonGardenProgress");
+    updateContinueButton();
     startGame(0);
 });
 
 document.querySelector("#showStickersBtn").addEventListener("click", () => {
-    alert("Your stickers are displayed above!");
+    if (els.stickerContainer) {
+      els.stickerContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 });
-
-function updateVsBtnUI() {
-  const btn = document.querySelector("#coopModeBtn");
-  if (!btn) return;
-  const t = i18n[currentLang];
-  if (coopMode) {
-    btn.style.background = "#e0aaff";
-    btn.style.borderColor = "#7b5dc8";
-    btn.textContent = `${t.coopModeBtn} — ON`;
-  } else {
-    btn.style.background = "#fff";
-    btn.style.borderColor = "#ddd1c0";
-    btn.textContent = `${t.coopModeBtn} — OFF`;
-  }
-}
 
 document.querySelector("#coopModeBtn").addEventListener("click", () => {
   coopMode = !coopMode;
-  updateVsBtnUI();
-  // If a level is already running, re-spawn P2 immediately so it joins the game.
+  updateModeUI();
+  updateSeedsDisplay();
   if (running) {
     if (coopMode) {
-      // Re-anchor P2 next to P1
       const px = Math.floor(state.player.x);
       const py = Math.floor(state.player.y);
       state.player2.x = px + 1.5;
       state.player2.y = py + 0.5;
       state.player2.invincible = 1;
       state.player2.score = 0;
-      showToast("Player 2 joined! Use Arrow Keys.", 2);
+      showToast(i18n[currentLang].hintCoop, 2);
     } else {
-      showToast("Two-player Mode off.", 1.4);
+      showToast(i18n[currentLang].hintSolo, 1.6);
     }
   }
 });
-updateVsBtnUI();
 
 function populateLevelSelector() {
-    const selector = document.querySelector("#level-selector");
+    const selector = els.levelSelector;
     if (!selector) return;
     selector.innerHTML = "";
-    levels.forEach((_, idx) => {
+    levels.forEach((lvl, idx) => {
         const btn = document.createElement("button");
+        btn.type = "button";
         btn.textContent = idx + 1;
         btn.style.cursor = "pointer";
         btn.style.background = "#fff";
@@ -1338,13 +1435,14 @@ function populateLevelSelector() {
         btn.style.placeItems = "center";
         btn.style.fontWeight = "bold";
         btn.style.boxShadow = "none";
-        
-        btn.addEventListener("click", () => {
-            startGame(idx);
-        });
+        btn.title = lvl.names[currentLang];
+        btn.addEventListener("click", () => startGame(idx));
         selector.appendChild(btn);
     });
 }
 
+// Init
+switchLanguage("en");
+updateContinueButton();
 populateLevelSelector();
 draw();
