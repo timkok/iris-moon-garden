@@ -5,7 +5,6 @@ const els = {
   mission: document.querySelector("#missionText"),
   level: document.querySelector("#levelStat"),
   seeds: document.querySelector("#seedStat"),
-  bonus: document.querySelector("#bonusStat"),
   time: document.querySelector("#timeStat"),
   hearts: document.querySelector("#heartStat"),
   progress: document.querySelector("#progressFill"),
@@ -21,8 +20,13 @@ const els = {
   progressBar: document.querySelector("#progressBar"),
   cozyToggle: document.querySelector("#cozyToggle"),
   completeOverlay: document.querySelector("#complete-overlay"),
+  completeTitle: document.querySelector("#complete-title"),
   completeStats: document.querySelector("#complete-stats"),
   nextLevel: document.querySelector("#nextLevelBtn"),
+  langBtn: document.querySelector("#langBtn"),
+  titleText: document.querySelector("#title-text"),
+  cozyLabel: document.querySelector("#cozy-label"),
+  hintText: document.querySelector("#hint-text"),
 };
 
 const TILE = 48;
@@ -44,11 +48,81 @@ let overlayAction = "start";
 let cozyMode = true;
 let showHintPath = false;
 let livesLostThisLevel = 0;
+let currentLang = "zh"; // "zh" or "en"
+
+const i18n = {
+    zh: {
+        title: "Iris 与月光花园",
+        intro: "帮助 Iris 唤醒沉睡的星星，打开月光门。",
+        cozyLabel: "温馨模式 (更轻松)：",
+        startBtn: "开始冒险",
+        restartBtn: "重新开始",
+        pauseBtn: "暂停",
+        pauseBtnActive: "继续",
+        helpBtn: "帮我一下",
+        helpBtnActive: "隐藏指引",
+        hintText: "使用方向键或 WASD 移动。空格暂停。蓝色池塘会减慢速度；粉色爱心可以恢复生命。",
+        completeTitle: "闯关成功！",
+        nextLevelBtn: "下一关",
+        playAgainBtn: "再玩一次",
+        seeds: "星种子",
+        time: "时间",
+        hearts: "生命",
+        hits: "扣血",
+        toastSeedsDone: "星光种子收集完成！月光门打开啦！",
+        toastKeyFound: "彩虹钥匙找到了！",
+        toastHeartRefill: "生命恢复。",
+        toastShadowHit: "别担心，再试一次！",
+        toastGameOver: "生命耗尽。",
+        toastGateNeedSeeds: "大门需要集齐所有星光种子才能打开。",
+        toastGateNeedKey: "彩虹门需要钥匙。",
+        missionText: "寻找钥匙",
+        keyFoundText: "钥匙已找到",
+        readyTitle: "准备好了吗，Iris？",
+        retryTitle: "这次飞得很棒！",
+        retryCopy: "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？",
+        endTitle: "大功告成！",
+        endCopy: "月光花园再次闪耀！你完成了所有冒险。",
+    },
+    en: {
+        title: "Iris and the Moonlit Garden",
+        intro: "Help Iris wake the sleeping stars and open the moon gate.",
+        cozyMode: "Cozy Mode (Easier):",
+        startBtn: "Start Adventure",
+        restartBtn: "Restart",
+        pauseBtn: "Pause",
+        pauseBtnActive: "Resume",
+        helpBtn: "Help Me",
+        helpBtnActive: "Hide Hint",
+        hintText: "Use arrow keys or WASD to move. Space to pause. Blue ponds slow you down; pink hearts restore life.",
+        completeTitle: "Level Complete!",
+        nextLevelBtn: "Next Level",
+        playAgainBtn: "Play Again",
+        seeds: "Seeds",
+        time: "Time",
+        hearts: "Hearts",
+        hits: "Hits",
+        toastSeedsDone: "All star seeds collected! Moon gate opened!",
+        toastKeyFound: "Rainbow key found!",
+        toastHeartRefill: "Hearts refilled.",
+        toastShadowHit: "Don't worry, try again!",
+        toastGameOver: "No hearts left.",
+        toastGateNeedSeeds: "Collect all star seeds to open the gate.",
+        toastGateNeedKey: "The gate requires a key.",
+        missionText: "Find Key",
+        keyFoundText: "Key Found",
+        readyTitle: "Ready, Iris?",
+        retryTitle: "Great flight!",
+        retryCopy: "Try again, Iris is getting closer to the Moon Tree. Want to try Cozy Mode?",
+        endTitle: "Well Done!",
+        endCopy: "The Moon Garden is glowing again! You completed all adventures.",
+    }
+};
 
 const levels = [
   {
-    name: "第 1 关：唤醒沉睡的花朵",
-    mission: "收集所有星光种子，然后走进发光的月光门。本关没有敌人哦！",
+    names: { zh: "第 1 关：唤醒沉睡的花朵", en: "Level 1: Wake the sleeping stars" },
+    missions: { zh: "收集所有星光种子，然后走进发光的月光门。本关没有敌人哦！", en: "Collect all star seeds and enter the glowing gate. No enemies here!" },
     map: [
       "####################",
       "#I...*.......#.....#",
@@ -66,8 +140,8 @@ const levels = [
     shadows: [],
   },
   {
-    name: "第 2 关：穿过迷雾池塘",
-    mission: "蓝色泥潭会减慢 Iris 的速度，看准时机穿过它们。",
+    names: { zh: "第 2 关：穿过迷雾池塘", en: "Level 2: Cross the misty pond" },
+    missions: { zh: "蓝色泥潭会减慢 Iris 的速度，看准时机穿过它们。", en: "Blue ponds slow Iris down. Cross them carefully." },
     map: [
       "####################",
       "#I...#....*....#...#",
@@ -85,8 +159,8 @@ const levels = [
     shadows: [],
   },
   {
-    name: "第 3 关：避开跳舞的阴影",
-    mission: "本关引入了一个缓慢移动的阴影，小心避开它！",
+    names: { zh: "第 3 关：避开跳舞的阴影", en: "Level 3: Avoid the dancing shadows" },
+    missions: { zh: "本关引入了一个缓慢移动的阴影，小心避开它！", en: "Avoid the slow moving shadow!" },
     map: [
       "####################",
       "#I..*....~~~~......#",
@@ -106,8 +180,8 @@ const levels = [
     ],
   },
   {
-    name: "第 4 关：寻找隐藏的爱心",
-    mission: "本关增加了一个隐藏的爱心，可以恢复生命哦。",
+    names: { zh: "第 4 关：寻找隐藏的爱心", en: "Level 4: Find the hidden heart" },
+    missions: { zh: "本关增加了一个隐藏的爱心，可以恢复生命哦。", en: "A hidden heart restores your life." },
     map: [
       "####################",
       "#I....#...*.....#..#",
@@ -128,8 +202,8 @@ const levels = [
     ],
   },
   {
-    name: "第 5 关：点亮月亮桥",
-    mission: "路线更复杂了，但依然要保持耐心。",
+    names: { zh: "第 5 关：点亮月亮桥", en: "Level 5: Light the moon bridge" },
+    missions: { zh: "路线更复杂了，但依然要保持耐心。", en: "Complex paths but still fair." },
     map: [
       "####################",
       "#I..*....#....*....#",
@@ -151,8 +225,8 @@ const levels = [
     ],
   },
   {
-    name: "第 6 关：打开最后的月光门",
-    mission: "终极挑战！收集所有种子并安全到达终点吧！",
+    names: { zh: "第 6 关：打开最后的月光门", en: "Level 6: Open the final moon gate" },
+    missions: { zh: "终极挑战！收集所有种子并安全到达终点吧！", en: "Final challenge! Collect all seeds and reach the exit." },
     map: [
       "####################",
       "#I..*....#.....*...#",
@@ -190,6 +264,29 @@ const state = {
   totalSeeds: 0,
 };
 
+function switchLanguage(lang) {
+    currentLang = lang;
+    els.langBtn.textContent = lang === "zh" ? "English" : "中文";
+    
+    const t = i18n[lang];
+    els.mission.textContent = t.intro;
+    els.titleText.textContent = t.title;
+    els.overlayCopy.textContent = t.intro;
+    els.cozyLabel.textContent = t.cozyMode || t.cozyLabel;
+    els.start.textContent = t.startBtn;
+    els.restart.textContent = t.restartBtn;
+    els.pause.textContent = paused ? t.pauseBtnActive : t.pauseBtn;
+    els.help.textContent = showHintPath ? t.helpBtnActive : t.helpBtn;
+    els.hintText.textContent = t.hintText;
+    els.completeTitle.textContent = t.completeTitle;
+    els.nextLevel.textContent = t.nextLevelBtn;
+    
+    if (running) {
+        els.level.textContent = `🌙 ${levels[levelIndex].names[lang]}`;
+        els.seeds.textContent = `⭐ ${t.seeds}：${state.seeds.filter(s => s.collected).length} / ${state.totalSeeds}`;
+    }
+}
+
 function loadLevel(index) {
   const level = levels[index];
   if (!level) return;
@@ -222,11 +319,12 @@ function loadLevel(index) {
   state.player.invincible = 1;
   levelTime = 0;
   livesLostThisLevel = 0;
-  els.mission.textContent = level.mission;
   
-  // Update HUD text (even if hidden)
-  els.level.textContent = `🌙 ${level.name}`;
-  els.seeds.textContent = `⭐ 星种子：0 / ${state.totalSeeds}`;
+  els.mission.textContent = level.missions[currentLang];
+  els.level.textContent = `🌙 ${level.names[currentLang]}`;
+  els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：0 / ${state.totalSeeds}`;
+  
+  showToast(`${level.names[currentLang]}`, 2.5);
   
   updateHud();
 }
@@ -243,9 +341,8 @@ function startGame() {
   running = true;
   lastTime = 0;
   keys.clear();
-  els.pause.textContent = "暂停";
+  els.pause.textContent = i18n[currentLang].pauseBtn;
   
-  // Show HUD ONLY after clicking start
   els.hud.classList.remove("hidden");
   els.progressBar.classList.remove("hidden");
   
@@ -341,7 +438,7 @@ function moveShadows(dt) {
     const max = axis === "x" ? shadow.maxX : shadow.maxY;
     
     let speed = shadow.speed;
-    if (cozyMode) speed *= 0.7; // 30% slower in Cozy Mode
+    if (cozyMode) speed *= 0.7;
 
     shadow[axis] += shadow.dir * speed * dt;
     if (shadow[axis] > max) {
@@ -360,11 +457,11 @@ function collectItems() {
     if (!seed.collected && distance(seed, state.player) < 0.55) {
       seed.collected = true;
       const collectedCount = state.seeds.filter((item) => item.collected).length;
-      els.seeds.textContent = `⭐ 星种子：${collectedCount} / ${state.totalSeeds}`;
+      els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：${collectedCount} / ${state.totalSeeds}`;
       
       const left = state.totalSeeds - collectedCount;
       if (left === 0) {
-        showToast("星光种子收集完成！月光门打开啦！", 2);
+        showToast(i18n[currentLang].toastSeedsDone, 2);
       }
     }
   });
@@ -372,7 +469,7 @@ function collectItems() {
   if (state.key && !state.key.collected && distance(state.key, state.player) < 0.55) {
     state.key.collected = true;
     state.hasKey = true;
-    showToast("彩虹钥匙找到了！");
+    showToast(i18n[currentLang].toastKeyFound);
   }
   
   state.heartPickups.forEach((heart) => {
@@ -392,9 +489,8 @@ function checkShadowHits() {
   
   hearts -= 1;
   livesLostThisLevel++;
-  state.player.invincible = 2.0; // 2 seconds of invincibility
+  state.player.invincible = 2.0;
   
-  // Reset player to start of level
   const level = levels[levelIndex];
   level.map.forEach((row, y) => {
     [...row].forEach((cell, x) => {
@@ -405,16 +501,15 @@ function checkShadowHits() {
     });
   });
   
-  showToast(hearts > 0 ? "别担心，再试一次！" : "生命耗尽。", 1.5);
+  showToast(hearts > 0 ? i18n[currentLang].toastShadowHit : i18n[currentLang].toastGameOver, 1.5);
   
   if (hearts <= 0) {
       if (cozyMode) {
           hearts = MAX_HEARTS;
           loadLevel(levelIndex);
-          showToast("再试一次，Iris 离月亮树更近啦。");
       } else {
           running = false;
-          showOverlay("这次飞得很棒！", "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？", "重新开始", "retry");
+          showOverlay(i18n[currentLang].retryTitle, i18n[currentLang].retryCopy, i18n[currentLang].restartBtn, "retry");
       }
   }
 }
@@ -434,22 +529,24 @@ function showLevelCompleteScreen() {
     const allSeeds = state.seeds.every(s => s.collected);
     if (allSeeds) stars++;
     if (livesLostThisLevel === 0) stars++;
-    // 3rd star for finding flower removed as requested to keep it simple
-    if (stars === 2) stars++; // Give 3 stars if both conditions met, since flower is removed
+    if (stars === 2) stars++;
     
     let starsStr = "⭐".repeat(stars) + "☆".repeat(3 - stars);
     
+    const t = i18n[currentLang];
     document.querySelector(".stars-display").textContent = starsStr;
-    els.completeStats.textContent = `种子: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | 时间: ${formatTime(levelTime)} | 扣血: ${livesLostThisLevel}`;
+    els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | ${t.time}: ${formatTime(levelTime)} | ${t.hits}: ${livesLostThisLevel}`;
     
     els.completeOverlay.classList.remove("hidden");
+    els.completeOverlay.setAttribute("aria-hidden", "false");
 }
 
 els.nextLevel.addEventListener("click", () => {
     els.completeOverlay.classList.add("hidden");
+    els.completeOverlay.setAttribute("aria-hidden", "true");
     levelIndex++;
     if (levelIndex >= levels.length) {
-        showOverlay("大功告成！", "月光花园再次闪耀！你完成了所有冒险。", "再玩一次", "start");
+        showOverlay(i18n[currentLang].endTitle, i18n[currentLang].endCopy, i18n[currentLang].playAgainBtn, "start");
         return;
     }
     loadLevel(levelIndex);
@@ -458,8 +555,7 @@ els.nextLevel.addEventListener("click", () => {
 });
 
 function updateHud() {
-  els.bonus.textContent = state.hasKey ? "钥匙已找到" : "寻找钥匙";
-  els.time.textContent = `⏱ 时间 ${formatTime(runTime)}`;
+  els.time.textContent = `⏱ ${i18n[currentLang].time} ${formatTime(runTime)}`;
   els.hearts.textContent = "💖 " + "♡".repeat(hearts);
   els.progress.style.width = `${Math.round(progressPercent())}%`;
 }
@@ -663,10 +759,14 @@ function drawHintPath() {
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
+  // Prevent scrolling for arrow keys and space
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
+    event.preventDefault();
+  }
   keys.add(key);
   if (key === " " && running) {
     paused = !paused;
-    els.pause.textContent = paused ? "继续" : "暂停";
+    els.pause.textContent = paused ? i18n[currentLang].pauseBtnActive : i18n[currentLang].pauseBtn;
   }
 });
 
@@ -689,12 +789,16 @@ els.restart.addEventListener("click", () => {
 els.pause.addEventListener("click", () => {
     if (!running) return;
     paused = !paused;
-    els.pause.textContent = paused ? "继续" : "暂停";
+    els.pause.textContent = paused ? i18n[currentLang].pauseBtnActive : i18n[currentLang].pauseBtn;
 });
 
 els.help.addEventListener("click", () => {
     showHintPath = !showHintPath;
-    els.help.textContent = showHintPath ? "隐藏指引" : "帮我一下";
+    els.help.textContent = showHintPath ? i18n[currentLang].helpBtnActive : i18n[currentLang].helpBtn;
+});
+
+els.langBtn.addEventListener("click", () => {
+    switchLanguage(currentLang === "zh" ? "en" : "zh");
 });
 
 // D-Pad
@@ -707,5 +811,5 @@ document.querySelectorAll(".pad button").forEach((button) => {
 });
 
 // Init
-loadLevel(0);
+switchLanguage("zh"); // Default to Chinese
 draw();

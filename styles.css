@@ -48,7 +48,7 @@ button:hover {
 }
 
 .shell {
-  width: min(1120px, 100%);
+  width: min(850px, 100%);
 }
 
 .game-surface {
