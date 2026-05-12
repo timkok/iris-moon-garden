@@ -354,8 +354,8 @@ function startGame(startIndex = 0) {
   }
 
   try {
-      cozyMode = els.cozyToggle.checked;
-      MAX_HEARTS = cozyMode ? 5 : 3;
+      cozyMode = true;
+      MAX_HEARTS = 5;
       hearts = MAX_HEARTS;
       
       levelIndex = startIndex;
