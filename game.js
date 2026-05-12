@@ -624,19 +624,6 @@ function movePlayer(dt) {
     tryMove(state.player2, 0, dy2 * speed2 * dt);
   }
 }
-    
-    if (dx2 && dy2) {
-      dx2 *= Math.SQRT1_2;
-      dy2 *= Math.SQRT1_2;
-    }
-    
-    let speedMultiplier2 = currentSpeedMultiplier(state.player2);
-    const speed2 = state.player2.speed * speedMultiplier2;
-    tryMove(state.player2, dx2 * speed2 * dt, 0);
-    tryMove(state.player2, 0, dy2 * speed2 * dt);
-  }
-}
-
 function tryMove(player, dx, dy) {
   const next = { x: player.x + dx, y: player.y + dy };
   if (!collides(player, next.x, next.y)) {
@@ -1317,7 +1304,6 @@ document.querySelector("#coopModeBtn").addEventListener("click", () => {
   // If a level is already running, re-spawn P2 immediately so it joins the game.
   if (running) {
     if (coopMode) {
-      document.querySelector("#p2SeedStat").classList.remove("hidden");
       // Re-anchor P2 next to P1
       const px = Math.floor(state.player.x);
       const py = Math.floor(state.player.y);
@@ -1325,11 +1311,9 @@ document.querySelector("#coopModeBtn").addEventListener("click", () => {
       state.player2.y = py + 0.5;
       state.player2.invincible = 1;
       state.player2.score = 0;
-      document.querySelector("#p2SeedStat").textContent = `💜 P2: 0`;
-      showToast("Player 2 joined! Use W/A/S/D.", 2);
+      showToast("Player 2 joined! Use Arrow Keys.", 2);
     } else {
-      document.querySelector("#p2SeedStat").classList.add("hidden");
-      showToast("Versus Mode off.", 1.4);
+      showToast("Two-player Mode off.", 1.4);
     }
   }
 });
