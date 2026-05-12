@@ -24,6 +24,7 @@ const els = {
   completeStats: document.querySelector("#complete-stats"),
   nextLevel: document.querySelector("#nextLevelBtn"),
   langBtn: document.querySelector("#langBtn"),
+  continue: document.querySelector("#continueBtn"),
   titleText: document.querySelector("#title-text"),
   cozyLabel: document.querySelector("#cozy-label"),
   hintText: document.querySelector("#hint-text"),
@@ -263,6 +264,8 @@ const state = {
   heartPickups: [],
   door: null,
   totalSeeds: 0,
+  particles: [],
+  screenShake: 0,
 };
 
 function switchLanguage(lang) {
@@ -331,12 +334,14 @@ function loadLevel(index) {
   updateHud();
 }
 
-function startGame() {
+function startGame(startIndex = 0) {
+  soundManager.init();
+  soundManager.playMusic();
   cozyMode = els.cozyToggle.checked;
   MAX_HEARTS = cozyMode ? 5 : 3;
   hearts = MAX_HEARTS;
   
-  levelIndex = 0;
+  levelIndex = startIndex;
   runTime = 0;
   levelTime = 0;
   paused = false;
@@ -368,10 +373,12 @@ function update(dt) {
   toastTimer = Math.max(0, toastTimer - dt);
   if (toastTimer === 0) els.toast.classList.add("hidden");
   state.player.invincible = Math.max(0, state.player.invincible - dt);
+  state.screenShake = Math.max(0, state.screenShake - dt * 2);
   
   movePlayer(dt);
   moveShadows(dt);
   collectItems();
+  updateParticles(dt);
   checkShadowHits();
   checkExit();
   updateHud();
@@ -458,6 +465,8 @@ function collectItems() {
   state.seeds.forEach((seed) => {
     if (!seed.collected && distance(seed, state.player) < 0.55) {
       seed.collected = true;
+      soundManager.playCollect();
+      createParticles(seed.x * TILE, seed.y * TILE, "#f2b83d");
       const collectedCount = state.seeds.filter((item) => item.collected).length;
       els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：${collectedCount} / ${state.totalSeeds}`;
       
@@ -479,6 +488,7 @@ function collectItems() {
     heart.collected = true;
     if (hearts < MAX_HEARTS) {
       hearts += 1;
+      soundManager.playRefill();
       createFloatingText("+1 ❤️", state.player.x, state.player.y);
     }
   });
@@ -492,6 +502,8 @@ function checkShadowHits() {
   hearts -= 1;
   livesLostThisLevel++;
   state.player.invincible = 2.0;
+  state.screenShake = 0.3;
+  soundManager.playHit();
   
   const level = levels[levelIndex];
   level.map.forEach((row, y) => {
@@ -541,6 +553,8 @@ function showLevelCompleteScreen() {
     
     els.completeOverlay.classList.remove("hidden");
     els.completeOverlay.setAttribute("aria-hidden", "false");
+    soundManager.playWin();
+    localStorage.setItem("moonGardenProgress", levelIndex + 1);
 }
 
 els.nextLevel.addEventListener("click", () => {
@@ -610,10 +624,50 @@ function createFloatingText(text, x, y) {
     }
 }
 
+function createParticles(x, y, color) {
+    for (let i = 0; i < 10; i++) {
+        state.particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 150,
+            vy: (Math.random() - 0.5) * 150,
+            life: 0.5,
+            color
+        });
+    }
+}
+
+function updateParticles(dt) {
+    state.particles = state.particles.filter(p => p.life > 0);
+    state.particles.forEach(p => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+    });
+}
+
+function drawParticles() {
+    state.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life * 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+}
+
 // --- Drawing Functions ---
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.save();
+  if (state.screenShake > 0) {
+    const rx = (Math.random() - 0.5) * 10;
+    const ry = (Math.random() - 0.5) * 10;
+    ctx.translate(rx, ry);
+  }
+  
   drawGarden();
   drawExit();
   drawDoor();
@@ -622,7 +676,10 @@ function draw() {
   drawHeartPickups();
   drawShadows();
   drawPlayer();
+  drawParticles();
   drawHintPath();
+  
+  ctx.restore();
 }
 
 function drawGarden() {
@@ -724,8 +781,17 @@ function drawPlayer() {
   const y = state.player.y * TILE;
   
   ctx.globalAlpha = state.player.invincible > 0 && Math.floor(sparkle * 12) % 2 === 0 ? 0.55 : 1;
-  ctx.fillStyle = "#ff758c";
   
+  // Draw wings
+  ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+  const wingSpan = 10 + Math.sin(sparkle * 10) * 5;
+  ctx.beginPath();
+  ctx.ellipse(x - 8, y - 5, 12, wingSpan, Math.PI / 4, 0, Math.PI * 2);
+  ctx.ellipse(x + 8, y - 5, 12, wingSpan, -Math.PI / 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw body
+  ctx.fillStyle = "#ff758c";
   ctx.beginPath();
   ctx.arc(x, y, 12, 0, Math.PI * 2);
   ctx.fill();
@@ -814,4 +880,21 @@ document.querySelectorAll(".pad button").forEach((button) => {
 
 // Init
 switchLanguage("en"); // Default to English as requested
+
+const savedProgress = localStorage.getItem("moonGardenProgress");
+if (savedProgress) {
+    const nextLevel = parseInt(savedProgress, 10);
+    if (nextLevel < levels.length) {
+        els.continue.classList.remove("hidden");
+        els.continue.textContent = `Continue Level ${nextLevel + 1}`;
+    }
+}
+
+els.continue.addEventListener("click", () => {
+    const progress = localStorage.getItem("moonGardenProgress");
+    if (progress) {
+        startGame(parseInt(progress, 10));
+    }
+});
+
 draw();
