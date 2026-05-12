@@ -256,7 +256,76 @@ const levels = [
       { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 1.3, axis: "y" },
     ],
     sticker: "Tiny Dragon"
+  {
+    names: { zh: "第 7 关：阴影迷宫", en: "Level 7: Labyrinth of Shadows" },
+    missions: { zh: "这里有很多阴影，小心穿过迷宫！", en: "Many shadows here! Navigate the labyrinth carefully." },
+    map: [
+      "####################",
+      "#I...#...*........F#",
+      "#.##.#.##########.##",
+      "#..#...#...*...#...#",
+      "##.#####.#####.#.###",
+      "#......#.#.....#...#",
+      "#.####.#.#.#######.#",
+      "#.*..#.#.#.....*...#",
+      "#.##.###.#########.#",
+      "#..H......*......E.#",
+      "#....#....#....#...#", // Cut the highway
+      "####################",
+    ],
+    shadows: [
+      { x: 5.5, y: 3.5, minY: 1.5, maxY: 7.5, speed: 1.5, axis: "y" },
+      { x: 13.5, y: 5.5, minX: 9.5, maxX: 17.5, speed: 1.5 },
+    ],
+    sticker: "Mystic Owl"
   },
+  {
+    names: { zh: "第 8 关：迷雾迷宫", en: "Level 8: The Misty Maze" },
+    missions: { zh: "到处都是池塘，寻找钥匙吧！", en: "Puddles everywhere! Find the key." },
+    map: [
+      "####################",
+      "#I...~~~~...*.....F#",
+      "#.######.##########",
+      "#....#...#~~~~~#...#",
+      "####.#.###~~~~~#.###",
+      "#*...#.....#.....#.#",
+      "#.#####.##.#######.#",
+      "#...H....#...K.D...#",
+      "#.#####.#####.####.#",
+      "#.....*..........E.#",
+      "#....#....#....#...#", // Cut the highway
+      "####################",
+    ],
+    shadows: [
+      { x: 3.5, y: 5.5, minY: 3.5, maxY: 8.5, speed: 1.2, axis: "y" },
+    ],
+    sticker: "Aqua Deer"
+  },
+  {
+    names: { zh: "第 9 关：终极挑战", en: "Level 9: The Ultimate Challenge" },
+    missions: { zh: "你能通过最后一关吗？", en: "Can you beat the final level?" },
+    map: [
+      "####################",
+      "#I..*....#.....*..F#",
+      "#.######.#.#######.#",
+      "#....#...#~~~~~#...#",
+      "####.#.###~~~~~#.#.#",
+      "#*...#...K.....D.#.#",
+      "#.#####.#####.###..#",
+      "#.....*.....#...*..#",
+      "#.#########.#.####.#",
+      "#..H....~~~~#...*E.#",
+      "#....#....#....#...#", // Cut the highway
+      "####################",
+    ],
+    shadows: [
+      { x: 4.5, y: 3.5, minX: 1.5, maxX: 5.5, speed: 1.5 },
+      { x: 9.5, y: 7.5, minX: 6.5, maxX: 11.5, speed: 1.2 },
+      { x: 15.5, y: 1.5, minX: 12.5, maxX: 18.5, speed: 1.7 },
+      { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 1.3, axis: "y" },
+    ],
+    sticker: "Sun Phoenix"
+  }
 ];
 
 const state = {
@@ -989,4 +1058,31 @@ document.querySelector("#showStickersBtn").addEventListener("click", () => {
     alert("Your stickers are displayed above!");
 });
 
+function populateLevelSelector() {
+    const selector = document.querySelector("#level-selector");
+    if (!selector) return;
+    selector.innerHTML = "";
+    levels.forEach((_, idx) => {
+        const btn = document.createElement("button");
+        btn.textContent = idx + 1;
+        btn.style.cursor = "pointer";
+        btn.style.background = "#fff";
+        btn.style.border = "1px solid #ddd1c0";
+        btn.style.color = "#243044";
+        btn.style.borderRadius = "50%";
+        btn.style.width = "40px";
+        btn.style.height = "40px";
+        btn.style.display = "grid";
+        btn.style.placeItems = "center";
+        btn.style.fontWeight = "bold";
+        btn.style.boxShadow = "none";
+        
+        btn.addEventListener("click", () => {
+            startGame(idx);
+        });
+        selector.appendChild(btn);
+    });
+}
+
+populateLevelSelector();
 draw();
