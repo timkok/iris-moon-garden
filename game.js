@@ -405,7 +405,7 @@ const levels = [
 
 const state = {
   player: { x: 1.5, y: 1.5, radius: 15, speed: 4.1, invincible: 0 },
-  player2: { x: 1.5, y: 1.5, radius: 15, speed: 4.1, score: 0 },
+  player2: { x: 1.5, y: 1.5, radius: 15, speed: 4.1, score: 0, invincible: 0 },
   seeds: [],
   key: null,
   hasKey: false,
@@ -462,8 +462,21 @@ function loadLevel(index) {
         state.player.x = x + 0.5;
         state.player.y = y + 0.5;
         if (vsMode) {
-          state.player2.x = x + 0.5;
-          state.player2.y = y + 0.5;
+          // Spawn P2 one tile to the right if available, otherwise below, so it doesn't sit on top of P1.
+          const rightFree = level.map[y] && level.map[y][x + 1] && level.map[y][x + 1] !== "#";
+          const downFree = level.map[y + 1] && level.map[y + 1][x] && level.map[y + 1][x] !== "#";
+          if (rightFree) {
+            state.player2.x = x + 1.5;
+            state.player2.y = y + 0.5;
+          } else if (downFree) {
+            state.player2.x = x + 0.5;
+            state.player2.y = y + 1.5;
+          } else {
+            state.player2.x = x + 0.5;
+            state.player2.y = y + 0.5;
+          }
+          state.player2.invincible = 1;
+          state.player2.score = 0;
         }
       }
       if (cell === "*") state.seeds.push({ x: x + 0.5, y: y + 0.5, collected: false });
@@ -1226,19 +1239,43 @@ document.querySelector("#showStickersBtn").addEventListener("click", () => {
     alert("Your stickers are displayed above!");
 });
 
+function updateVsBtnUI() {
+  const btn = document.querySelector("#vsModeBtn");
+  if (!btn) return;
+  if (vsMode) {
+    btn.style.background = "#e0aaff";
+    btn.style.borderColor = "#7b5dc8";
+    btn.textContent = "⚔️ Versus Mode: ON — P1 Arrows · P2 WASD";
+  } else {
+    btn.style.background = "#fff";
+    btn.style.borderColor = "#ddd1c0";
+    btn.textContent = "⚔️ Versus Mode (Shared Keyboard) — OFF";
+  }
+}
+
 document.querySelector("#vsModeBtn").addEventListener("click", () => {
-    vsMode = !vsMode;
-    const btn = document.querySelector("#vsModeBtn");
+  vsMode = !vsMode;
+  updateVsBtnUI();
+  // If a level is already running, re-spawn P2 immediately so it joins the game.
+  if (running) {
     if (vsMode) {
-        btn.style.background = "#e0aaff";
-        btn.style.borderColor = "#7b5dc8";
-        alert("Versus Mode ON! Player 1 uses Arrows, Player 2 uses WASD.");
+      document.querySelector("#p2SeedStat").classList.remove("hidden");
+      // Re-anchor P2 next to P1
+      const px = Math.floor(state.player.x);
+      const py = Math.floor(state.player.y);
+      state.player2.x = px + 1.5;
+      state.player2.y = py + 0.5;
+      state.player2.invincible = 1;
+      state.player2.score = 0;
+      document.querySelector("#p2SeedStat").textContent = `💜 P2: 0`;
+      showToast("Player 2 joined! Use W/A/S/D.", 2);
     } else {
-        btn.style.background = "#fff";
-        btn.style.borderColor = "#ddd1c0";
-        alert("Versus Mode OFF!");
+      document.querySelector("#p2SeedStat").classList.add("hidden");
+      showToast("Versus Mode off.", 1.4);
     }
+  }
 });
+updateVsBtnUI();
 
 function populateLevelSelector() {
     const selector = document.querySelector("#level-selector");
