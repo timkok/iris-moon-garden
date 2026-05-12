@@ -327,6 +327,79 @@ const levels = [
       { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 1.3, axis: "y" },
     ],
     sticker: "Sun Phoenix"
+  },
+  {
+    names: { zh: "第 10 关：暗影试炼", en: "Level 10: The Shadow Gauntlet" },
+    missions: { zh: "快速移动的暗影！你能穿过去吗？", en: "Fast moving shadows! Can you make it through?" },
+    map: [
+      "####################",
+      "#I..*....#.....*..F#",
+      "#.######.#.#######.#",
+      "#....#...#.....#...#",
+      "####.#.#######.#.#.#",
+      "#*...#...K.....D.#.#",
+      "#.#####.#####.###..#",
+      "#.....*.....#...*..#",
+      "#.#########.#.####.#",
+      "#..H....~~~~#...*E.#",
+      "#....#....#....#...#",
+      "####################",
+    ],
+    shadows: [
+      { x: 4.5, y: 3.5, minX: 1.5, maxX: 5.5, speed: 2.5 }, // Faster!
+      { x: 9.5, y: 7.5, minX: 6.5, maxX: 11.5, speed: 2.2 }, // Faster!
+      { x: 15.5, y: 1.5, minX: 12.5, maxX: 18.5, speed: 2.7 }, // Faster!
+      { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 2.3, axis: "y" }, // Faster!
+    ],
+    sticker: "Thunder Eagle"
+  },
+  {
+    names: { zh: "第 11 关：冰封迷宫", en: "Level 11: The Frozen Maze" },
+    missions: { zh: "池塘会让你减速，小心影子！", en: "Puddles slow you down. Beware the shadows!" },
+    map: [
+      "####################",
+      "#I...~~~~...*~~~~~F#",
+      "#.######.##########",
+      "#~~~~#...#~~~~~#...#",
+      "####.#.###~~~~~#.###",
+      "#*~~~#.....#.....#.#",
+      "#.#####.##.#######.#",
+      "#...H....#...K.D...#",
+      "#.#####.#####.####.#",
+      "#.....*..........E.#",
+      "#....#....#....#...#",
+      "####################",
+    ],
+    shadows: [
+      { x: 3.5, y: 5.5, minY: 3.5, maxY: 8.5, speed: 1.5, axis: "y" },
+      { x: 12.5, y: 1.5, minX: 9.5, maxX: 15.5, speed: 1.8 },
+    ],
+    sticker: "Ice Wolf"
+  },
+  {
+    names: { zh: "第 12 关：终极对决", en: "Level 12: The Grand Finale" },
+    missions: { zh: "最后一关！祝你好运！", en: "The final level! Good luck!" },
+    map: [
+      "####################",
+      "#I..*..#.*...#..*..#",
+      "#.####.#.###.#.###.#",
+      "#.#..#.#.#...#.#...#",
+      "#.#.##.#.#.###.#.###",
+      "#.#..#...#...#.#..F#",
+      "#.##.#######.#.###.#",
+      "#..*...#...K.#.D.*.#",
+      "#.######.#####.###.#",
+      "#..H...*.......*..E#",
+      "#....#....#....#...#",
+      "####################",
+    ],
+    shadows: [
+      { x: 2.5, y: 3.5, minY: 1.5, maxY: 5.5, speed: 2.0, axis: "y" },
+      { x: 7.5, y: 5.5, minX: 5.5, maxX: 10.5, speed: 2.0 },
+      { x: 12.5, y: 1.5, minX: 11.5, maxX: 15.5, speed: 2.2 },
+      { x: 16.5, y: 7.5, minY: 5.5, maxY: 9.5, speed: 2.5, axis: "y" },
+    ],
+    sticker: "Star Goddess"
   }
 ];
 
@@ -678,29 +751,6 @@ function checkShadowHits() {
       state.screenShake = 0.3;
       soundManager.playHit();
     }
-  }
-}
-  
-  const level = levels[levelIndex];
-  level.map.forEach((row, y) => {
-    [...row].forEach((cell, x) => {
-      if (cell === "I") {
-        state.player.x = x + 0.5;
-        state.player.y = y + 0.5;
-      }
-    });
-  });
-  
-  showToast(hearts > 0 ? i18n[currentLang].toastShadowHit : i18n[currentLang].toastGameOver, 1.5);
-  
-  if (hearts <= 0) {
-      if (cozyMode) {
-          hearts = MAX_HEARTS;
-          loadLevel(levelIndex);
-      } else {
-          running = false;
-          showOverlay(i18n[currentLang].retryTitle, i18n[currentLang].retryCopy, i18n[currentLang].restartBtn, "retry");
-      }
   }
 }
 
