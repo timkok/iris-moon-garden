@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,20 +11,22 @@
   <main class="shell">
     <section class="game-surface" aria-label="Iris and the Moonlit Garden">
       
-      <!-- Topbar with HUD and Language Switch -->
+      <!-- Language Switch (Always visible top-right) -->
+      <div style="position: absolute; top: 15px; right: 15px; z-index: 100;">
+        <button id="langBtn" style="background: #7b5dc8; color: white; border: none; border-radius: 5px; padding: 6px 12px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: bold;">中文</button>
+      </div>
+
+      <!-- Topbar with HUD -->
       <div class="topbar hidden" id="hud">
         <div>
-          <h1>Iris 与月光花园</h1>
-          <p id="missionText">帮助 Iris 唤醒沉睡的星星，打开月光门。</p>
+          <h1 id="hud-title">Iris and the Moonlit Garden</h1>
+          <p id="missionText">Help Iris wake the sleeping stars and open the moon gate.</p>
         </div>
         <div class="stats" aria-live="polite">
-          <span id="levelStat">🌙 第 1 关</span>
-          <span id="seedStat">⭐ 星种子：0 / 0</span>
-          <span id="timeStat">⏱ 时间 0:00</span>
+          <span id="levelStat">🌙 Level 1</span>
+          <span id="seedStat">⭐ Seeds: 0 / 0</span>
+          <span id="timeStat">⏱ Time 0:00</span>
           <span id="heartStat">💖 ♡♡♡</span>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <button id="langBtn" style="background: #7b5dc8; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer;">English</button>
         </div>
       </div>
 
@@ -39,12 +41,13 @@
         <!-- Start / Title Overlay -->
         <div id="overlay" class="overlay">
           <div class="overlay-panel">
-            <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: #7b5dc8;" id="title-text">月光花园</h1>
-            <p id="overlayCopy">帮助 Iris 唤醒沉睡的星星，打开月光门。</p>
+            <h1 style="font-size: 2.5rem; margin-bottom: 5px; color: #7b5dc8;" id="title-text">Iris and the Moonlit Garden</h1>
+            <h2 id="story-title" style="font-size: 1.5rem; color: #2e8b68; margin-bottom: 15px;">The Sleeping Stars</h2>
+            <p id="overlayCopy">Help Iris wake the sleeping stars and open the moon gate.</p>
             
             <!-- Cozy Mode Toggle -->
             <div class="setting-item" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 20px 0;">
-              <span style="font-weight: bold; color: #2e8b68;" id="cozy-label">温馨模式 (更轻松)：</span>
+              <span style="font-weight: bold; color: #2e8b68;" id="cozy-label">Cozy Mode (Easier):</span>
               <label class="switch">
                 <input type="checkbox" id="cozyToggle" checked>
                 <span class="slider round"></span>
@@ -52,30 +55,30 @@
             </div>
 
             <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
-              <button id="startBtn" type="button" class="btn-primary">开始冒险</button>
+              <button id="startBtn" type="button" class="btn-primary">Start Adventure</button>
             </div>
           </div>
         </div>
 
-        <!-- Level Complete Overlay (Hidden properly now) -->
+        <!-- Level Complete Overlay -->
         <div id="complete-overlay" class="overlay hidden" aria-hidden="true">
           <div class="overlay-panel">
-            <h2 style="color: #2e8b68;" id="complete-title">闯关成功！</h2>
+            <h2 style="color: #2e8b68;" id="complete-title">Level Complete!</h2>
             <div class="stars-display" style="font-size: 2rem; color: #ffd700; margin: 10px 0;"></div>
             <p id="complete-stats" style="margin-bottom: 15px;"></p>
-            <button id="nextLevelBtn" class="btn-primary">下一关</button>
+            <button id="nextLevelBtn" class="btn-primary">Next Level</button>
           </div>
         </div>
       </div>
 
       <div class="controls">
-        <button id="restartBtn" type="button">重新开始</button>
-        <button id="pauseBtn" type="button">暂停</button>
-        <button id="helpBtn" type="button">帮我一下</button>
-        <p class="hint" id="hint-text">使用方向键或 WASD 移动。空格暂停。蓝色池塘会减慢速度；粉色爱心可以恢复生命。</p>
+        <button id="restartBtn" type="button">Restart</button>
+        <button id="pauseBtn" type="button">Pause</button>
+        <button id="helpBtn" type="button">Help Me</button>
+        <p class="hint" id="hint-text">Use arrow keys or WASD to move. Space to pause. Blue ponds slow you down; pink hearts restore life.</p>
         
-        <!-- Mobile D-Pad (Only one set here) -->
-        <div class="pad" aria-label="方向键">
+        <!-- Mobile D-Pad (Hidden on desktop via CSS) -->
+        <div class="pad" aria-label="Directional Controls">
           <button data-dir="up" type="button">↑</button>
           <button data-dir="left" type="button">←</button>
           <button data-dir="down" type="button">↓</button>
@@ -85,7 +88,6 @@
     </section>
   </main>
 
-  <!-- Floating Text Container -->
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
   <script src="./game.js"></script>

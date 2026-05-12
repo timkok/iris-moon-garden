@@ -229,9 +229,16 @@ canvas {
 
 .pad {
   display: grid;
-  grid-template-columns: repeat(3, 46px);
-  grid-template-rows: repeat(2, 42px);
-  gap: 6px;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(3, 40px);
+  gap: 5px;
+  justify-content: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pad {
+    display: none;
+  }
 }
 
 .pad button {

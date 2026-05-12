@@ -27,6 +27,7 @@ const els = {
   titleText: document.querySelector("#title-text"),
   cozyLabel: document.querySelector("#cozy-label"),
   hintText: document.querySelector("#hint-text"),
+  hudTitle: document.querySelector("#hud-title"),
 };
 
 const TILE = 48;
@@ -48,7 +49,7 @@ let overlayAction = "start";
 let cozyMode = true;
 let showHintPath = false;
 let livesLostThisLevel = 0;
-let currentLang = "zh"; // "zh" or "en"
+let currentLang = "en"; // Default to English as requested
 
 const i18n = {
     zh: {
@@ -87,7 +88,7 @@ const i18n = {
     en: {
         title: "Iris and the Moonlit Garden",
         intro: "Help Iris wake the sleeping stars and open the moon gate.",
-        cozyMode: "Cozy Mode (Easier):",
+        cozyLabel: "Cozy Mode (Easier):",
         startBtn: "Start Adventure",
         restartBtn: "Restart",
         pauseBtn: "Pause",
@@ -134,7 +135,7 @@ const levels = [
       "#.........#.....*..#",
       "#.######..#####.##.#",
       "#......*.........E.#",
-      "#..................#",
+      "#....#....#....#...#", // Cut the highway
       "####################",
     ],
     shadows: [],
@@ -153,7 +154,7 @@ const levels = [
       "#.*......#.....*...#",
       "#.##.#########.###.#",
       "#........*.......E.#",
-      "#..................#",
+      "#....#....#....#...#", // Cut the highway
       "####################",
     ],
     shadows: [],
@@ -172,7 +173,7 @@ const levels = [
       "#...~....#..#...*..#",
       "#.#####..#..###.##.#",
       "#.....*..#......E..#",
-      "#..~~~~..........~.#",
+      "#..~~~~..#.......~.#", // Cut the highway
       "####################",
     ],
     shadows: [
@@ -193,7 +194,7 @@ const levels = [
       "#.#.....K.#....D...#",
       "#.#####.#####.####.#",
       "#....*.........*E..#",
-      "#..H...............#",
+      "#..H..#....#....#..#", // Cut the highway
       "####################",
     ],
     shadows: [
@@ -215,7 +216,7 @@ const levels = [
       "#....*.....#..K.D..#",
       "#.##########.####..#",
       "#..~~~~~......*E...#",
-      "#..................#",
+      "#....#....#....#...#", // Cut the highway
       "####################",
     ],
     shadows: [
@@ -238,7 +239,7 @@ const levels = [
       "#.....*.....#...*..#",
       "#.#########.#.####.#",
       "#..H....~~~~#...*E.#",
-      "#..................#",
+      "#....#....#....#...#", // Cut the highway
       "####################",
     ],
     shadows: [
@@ -271,8 +272,9 @@ function switchLanguage(lang) {
     const t = i18n[lang];
     els.mission.textContent = t.intro;
     els.titleText.textContent = t.title;
+    els.hudTitle.textContent = t.title; // Fix HUD title translation
     els.overlayCopy.textContent = t.intro;
-    els.cozyLabel.textContent = t.cozyMode || t.cozyLabel;
+    els.cozyLabel.textContent = t.cozyLabel;
     els.start.textContent = t.startBtn;
     els.restart.textContent = t.restartBtn;
     els.pause.textContent = paused ? t.pauseBtnActive : t.pauseBtn;
@@ -811,5 +813,5 @@ document.querySelectorAll(".pad button").forEach((button) => {
 });
 
 // Init
-switchLanguage("zh"); // Default to Chinese
+switchLanguage("en"); // Default to English as requested
 draw();
