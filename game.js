@@ -350,7 +350,6 @@ function switchLanguage(lang) {
     
     const t = i18n[lang];
     els.mission.textContent = t.intro;
-    els.titleText.textContent = t.title;
     els.hudTitle.textContent = t.title; // Fix HUD title translation
     els.overlayCopy.textContent = t.intro;
     els.start.textContent = t.startBtn;
