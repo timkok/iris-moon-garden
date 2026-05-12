@@ -25,6 +25,7 @@ const els = {
   nextLevel: document.querySelector("#nextLevelBtn"),
   langBtn: document.querySelector("#langBtn"),
   continue: document.querySelector("#continueBtn"),
+  muteBtn: document.querySelector("#muteBtn"),
   titleText: document.querySelector("#title-text"),
   cozyLabel: document.querySelector("#cozy-label"),
   hintText: document.querySelector("#hint-text"),
@@ -89,12 +90,12 @@ const i18n = {
     en: {
         title: "Iris and the Moonlit Garden",
         intro: "Help Iris wake the sleeping stars and open the moon gate.",
-        cozyLabel: "Cozy Mode (Easier):",
+        cozyLabel: "Cozy Mode: more lives, slower shadows, and no timer pressure.",
         startBtn: "Start Adventure",
         restartBtn: "Restart",
         pauseBtn: "Pause",
         pauseBtnActive: "Resume",
-        helpBtn: "Help Me",
+        helpBtn: "Hint / Help me",
         helpBtnActive: "Hide Hint",
         hintText: "Use arrow keys or WASD to move. Space to pause. Blue ponds slow you down; pink hearts restore life.",
         completeTitle: "Level Complete!",
@@ -329,7 +330,8 @@ function loadLevel(index) {
   els.level.textContent = `🌙 ${level.names[currentLang]}`;
   els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：0 / ${state.totalSeeds}`;
   
-  showToast(`${level.names[currentLang]}`, 2.5);
+  // Show level intro title overlay (briefly)
+  createFloatingText(level.names[currentLang], state.player.x, state.player.y - 1);
   
   updateHud();
 }
@@ -875,6 +877,11 @@ els.pause.addEventListener("click", () => {
 els.help.addEventListener("click", () => {
     showHintPath = !showHintPath;
     els.help.textContent = showHintPath ? i18n[currentLang].helpBtnActive : i18n[currentLang].helpBtn;
+});
+
+els.muteBtn.addEventListener("click", () => {
+    const muted = soundManager.toggleMute();
+    els.muteBtn.textContent = muted ? "🔇" : "🔊";
 });
 
 els.langBtn.addEventListener("click", () => {

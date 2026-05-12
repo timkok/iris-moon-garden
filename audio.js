@@ -2,6 +2,7 @@ class SoundManager {
     constructor() {
         this.ctx = null;
         this.enabled = false;
+        this.muted = true; // Default to muted as requested
     }
 
     init() {
@@ -17,7 +18,7 @@ class SoundManager {
 
     // High pitched chime for collecting seeds
     playCollect() {
-        if (!this.enabled) return;
+        if (!this.enabled || this.muted) return;
         this.init(); // Ensure initialized on user interaction
         
         const osc = this.ctx.createOscillator();
@@ -39,7 +40,7 @@ class SoundManager {
 
     // Low thud for getting hit
     playHit() {
-        if (!this.enabled) return;
+        if (!this.enabled || this.muted) return;
         this.init();
         
         const osc = this.ctx.createOscillator();
@@ -61,7 +62,7 @@ class SoundManager {
 
     // Fanfare for level complete
     playWin() {
-        if (!this.enabled) return;
+        if (!this.enabled || this.muted) return;
         this.init();
         
         const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
@@ -87,7 +88,7 @@ class SoundManager {
 
     // Soft chime for heart refill
     playRefill() {
-        if (!this.enabled) return;
+        if (!this.enabled || this.muted) return;
         this.init();
         
         const osc = this.ctx.createOscillator();
@@ -109,7 +110,7 @@ class SoundManager {
     
     // Simple ambient loop
     playMusic() {
-        if (!this.enabled) return;
+        if (!this.enabled || this.muted) return;
         this.init();
         
         // This is a very simple sequence of notes
@@ -138,6 +139,11 @@ class SoundManager {
         };
         
         playNote();
+    }
+
+    toggleMute() {
+        this.muted = !this.muted;
+        return this.muted;
     }
 }
 

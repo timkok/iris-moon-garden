@@ -13,20 +13,21 @@
       
       <!-- Language Switch (Always visible top-right) -->
       <div style="position: absolute; top: 15px; right: 15px; z-index: 100;">
-        <button id="langBtn" style="background: #7b5dc8; color: white; border: none; border-radius: 5px; padding: 6px 12px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: bold;">中文</button>
+        <button id="langBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0;">中文</button>
       </div>
 
-      <!-- Topbar with HUD -->
-      <div class="topbar hidden" id="hud">
+      <!-- Topbar with HUD (Redesigned to match reference) -->
+      <div class="topbar hidden" id="hud" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px; margin-bottom: 15px; border: 1px solid #ddd1c0;">
         <div>
-          <h1 id="hud-title">Iris and the Moonlit Garden</h1>
-          <p id="missionText">Help Iris wake the sleeping stars and open the moon gate.</p>
+          <h1 id="hud-title" style="font-size: 1.6rem; margin: 0; color: #243044; font-family: 'Outfit', sans-serif;">Iris and the Moonlit Garden</h1>
+          <p id="missionText" style="margin: 5px 0 0; color: #657189; font-size: 0.95rem;">Help Iris wake the sleeping stars and open the moon gate.</p>
         </div>
-        <div class="stats" aria-live="polite">
-          <span id="levelStat">🌙 Level 1</span>
-          <span id="seedStat">⭐ Seeds: 0 / 0</span>
-          <span id="timeStat">⏱ Time 0:00</span>
-          <span id="heartStat">💖 ♡♡♡</span>
+        <div class="stats" aria-live="polite" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
+          <span id="levelStat" class="pill">🌙 Level 1</span>
+          <span id="seedStat" class="pill">⭐ Seeds: 0 / 0</span>
+          <span id="timeStat" class="pill">⏱ Time 0:00</span>
+          <span id="heartStat" class="pill">💖 ♡♡♡</span>
+          <button id="muteBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-size: 1.1rem; padding: 5px 10px;">🔇</button>
         </div>
       </div>
 
