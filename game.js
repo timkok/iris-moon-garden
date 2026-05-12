@@ -420,6 +420,7 @@ const state = {
   walls: [],
   puddles: [],
   heartPickups: [],
+  flowers: [],
   door: null,
   totalSeeds: 0,
   particles: [],

@@ -90,21 +90,22 @@
   const btn = document.getElementById('botBtn');
 
   function syncButton() {
+    if (!btn) return;
     btn.textContent = botActive ? '🙋 Manual' : '🤖 Auto Play';
     btn.style.background   = botActive ? '#4a7c59' : '';
     btn.style.color        = botActive ? '#fff'    : '';
     btn.style.borderColor  = botActive ? '#4a7c59' : '';
   }
 
-  btn.addEventListener('click', () => {
-    botActive = !botActive;
-    if (!botActive) keys.clear();   // release any held keys immediately
+  if (btn) {
+    btn.addEventListener('click', () => {
+      botActive = !botActive;
+      if (!botActive) keys.clear();
+      syncButton();
+      if (botActive && !running && !els.overlay.classList.contains('hidden'))
+        els.start.click();
+    });
     syncButton();
-    // if the game hasn't started yet, auto-start in bot mode
-    if (botActive && !running && !els.overlay.classList.contains('hidden'))
-      els.start.click();
-  });
-
-  syncButton();
-  setInterval(tick, 50);
+    setInterval(tick, 50);
+  }
 })();
