@@ -335,27 +335,39 @@ function loadLevel(index) {
 }
 
 function startGame(startIndex = 0) {
-  soundManager.init();
-  soundManager.playMusic();
-  cozyMode = els.cozyToggle.checked;
-  MAX_HEARTS = cozyMode ? 5 : 3;
-  hearts = MAX_HEARTS;
-  
-  levelIndex = startIndex;
-  runTime = 0;
-  levelTime = 0;
-  paused = false;
-  running = true;
-  lastTime = 0;
-  keys.clear();
-  els.pause.textContent = i18n[currentLang].pauseBtn;
-  
-  els.hud.classList.remove("hidden");
-  els.progressBar.classList.remove("hidden");
-  
-  loadLevel(levelIndex);
-  hideOverlay();
-  requestAnimationFrame(loop);
+  console.log("startGame called with index:", startIndex);
+  try {
+      soundManager.init();
+      soundManager.playMusic();
+  } catch (e) {
+      console.warn("Audio init failed:", e);
+  }
+
+  try {
+      cozyMode = els.cozyToggle.checked;
+      MAX_HEARTS = cozyMode ? 5 : 3;
+      hearts = MAX_HEARTS;
+      
+      levelIndex = startIndex;
+      runTime = 0;
+      levelTime = 0;
+      paused = false;
+      running = true;
+      lastTime = 0;
+      keys.clear();
+      els.pause.textContent = i18n[currentLang].pauseBtn;
+      
+      els.hud.classList.remove("hidden");
+      els.progressBar.classList.remove("hidden");
+      
+      loadLevel(levelIndex);
+      hideOverlay();
+      requestAnimationFrame(loop);
+      console.log("Game started successfully");
+  } catch (error) {
+      console.error("Critical error starting game:", error);
+      alert("Error starting game: " + error.message);
+  }
 }
 
 function loop(time) {
