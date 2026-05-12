@@ -256,6 +256,7 @@ const levels = [
       { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 1.3, axis: "y" },
     ],
     sticker: "Tiny Dragon"
+  },
   {
     names: { zh: "第 7 关：阴影迷宫", en: "Level 7: Labyrinth of Shadows" },
     missions: { zh: "这里有很多阴影，小心穿过迷宫！", en: "Many shadows here! Navigate the labyrinth carefully." },
