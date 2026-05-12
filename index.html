@@ -17,14 +17,14 @@
       </div>
 
       <!-- Topbar with HUD (Redesigned to match reference) -->
-      <div class="topbar hidden" id="hud" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px; margin-bottom: 15px; border: 1px solid #ddd1c0;">
+      <div class="topbar" id="hud" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px; margin-bottom: 15px; border: 1px solid #ddd1c0;">
         <div>
           <h1 id="hud-title" style="font-size: 1.6rem; margin: 0; color: #243044; font-family: 'Outfit', sans-serif;">Iris and the Moonlit Garden</h1>
           <p id="missionText" style="margin: 5px 0 0; color: #657189; font-size: 0.95rem;">Help Iris wake the sleeping stars and open the moon gate.</p>
         </div>
         <div class="stats" aria-live="polite" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
           <span id="levelStat" class="pill">🌙 Level 1</span>
-          <span id="seedStat" class="pill">⭐ Seeds: 0 / 0</span>
+          <span id="seedStat" class="pill">⭐ Seeds: — / —</span>
           <span id="timeStat" class="pill">⏱ Time 0:00</span>
           <span id="heartStat" class="pill">💖 ♡♡♡</span>
           <button id="muteBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-size: 1.1rem; padding: 5px 10px;">🔇</button>
@@ -42,13 +42,12 @@
         <!-- Start / Title Overlay -->
         <div id="overlay" class="overlay">
           <div class="overlay-panel">
-            <h1 style="font-size: 2.5rem; margin-bottom: 5px; color: #7b5dc8;" id="title-text">Iris and the Moonlit Garden</h1>
             <h2 id="story-title" style="font-size: 1.5rem; color: #2e8b68; margin-bottom: 15px;">The Sleeping Stars</h2>
-            <p id="overlayCopy">Help Iris wake the sleeping stars and open the moon gate.</p>
+            <p id="overlayCopy">Iris is on a magical journey to wake the sleeping stars. Help her navigate the garden and find the star seeds!</p>
             
             <!-- Cozy Mode Toggle -->
             <div class="setting-item" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 20px 0;">
-              <span style="font-weight: bold; color: #2e8b68;" id="cozy-label">Cozy Mode (Easier):</span>
+              <span style="font-weight: bold; color: #2e8b68; font-size: 0.9rem;" id="cozy-label">Cozy Mode: more lives, slower shadows, and no timer pressure.</span>
               <label class="switch">
                 <input type="checkbox" id="cozyToggle" checked>
                 <span class="slider round"></span>
@@ -71,12 +70,27 @@
             <button id="nextLevelBtn" class="btn-primary">Next Level</button>
           </div>
         </div>
+
+        <!-- End Screen Overlay -->
+        <div id="end-overlay" class="overlay hidden" aria-hidden="true">
+          <div class="overlay-panel">
+            <h2 style="color: #7b5dc8;" id="end-title">The Moon Garden is glowing again!</h2>
+            <p id="end-stats" style="margin-bottom: 15px;"></p>
+            <div id="sticker-container" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+              <!-- Stickers will be inserted here -->
+            </div>
+            <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
+              <button id="playAgainBtn" class="btn-primary">Play Again</button>
+              <button id="showStickersBtn" class="btn-primary" style="background: #2e8b68;">Sticker Book</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="controls">
         <button id="restartBtn" type="button">Restart</button>
         <button id="pauseBtn" type="button">Pause</button>
-        <button id="helpBtn" type="button">Help Me</button>
+        <button id="helpBtn" type="button">Hint / Help me</button>
         <p class="hint" id="hint-text">Use arrow keys or WASD to move. Space to pause. Blue ponds slow you down; pink hearts restore life.</p>
         
         <!-- Mobile D-Pad (Hidden on desktop via CSS) -->

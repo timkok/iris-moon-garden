@@ -128,7 +128,7 @@ const levels = [
     missions: { zh: "收集所有星光种子，然后走进发光的月光门。本关没有敌人哦！", en: "Collect all star seeds and enter the glowing gate. No enemies here!" },
     map: [
       "####################",
-      "#I...*.......#.....#",
+      "#I...*.......#....F#",
       "#.####.#####.#.###.#",
       "#......#...*...#...#",
       "#.##.#.#.#####.#.#.#",
@@ -141,6 +141,7 @@ const levels = [
       "####################",
     ],
     shadows: [],
+    sticker: "Moon Cat"
   },
   {
     names: { zh: "第 2 关：穿过迷雾池塘", en: "Level 2: Cross the misty pond" },
@@ -151,7 +152,7 @@ const levels = [
       "#.##.#.######..#.#.#",
       "#..*...#~~~~#....#.#",
       "####.#.#~~~~####.#.#",
-      "#....#...#....D..#.#",
+      "#F...#...#....D..#.#",
       "#.######.#.#####...#",
       "#.*......#.....*...#",
       "#.##.#########.###.#",
@@ -160,13 +161,14 @@ const levels = [
       "####################",
     ],
     shadows: [],
+    sticker: "Star Bunny"
   },
   {
     names: { zh: "第 3 关：避开跳舞的阴影", en: "Level 3: Avoid the dancing shadows" },
     missions: { zh: "本关引入了一个缓慢移动的阴影，小心避开它！", en: "Avoid the slow moving shadow!" },
     map: [
       "####################",
-      "#I..*....~~~~......#",
+      "#I..*....~~~~.....F#",
       "#.######.####.####.#",
       "#....#...#..*....#.#",
       "####.#.####.###..#.#",
@@ -181,6 +183,7 @@ const levels = [
     shadows: [
       { x: 12.5, y: 1.5, minX: 9.5, maxX: 17.5, speed: 1.0 },
     ],
+    sticker: "Sleepy Owl"
   },
   {
     names: { zh: "第 4 关：寻找隐藏的爱心", en: "Level 4: Find the hidden heart" },
@@ -189,7 +192,7 @@ const levels = [
       "####################",
       "#I....#...*.....#..#",
       "#.###.#.#####.#.#*.#",
-      "#...#...#...#.#....#",
+      "#...#...#...#.#...F#",
       "###.#.###.#.#.####.#",
       "#*..#.....#.#....#.#",
       "#.#.#####.#.####.#.#",
@@ -203,6 +206,7 @@ const levels = [
       { x: 3.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.2, axis: "y" },
       { x: 12.5, y: 5.5, minY: 3.5, maxY: 9.5, speed: 1.2, axis: "y" },
     ],
+    sticker: "Crystal Fox"
   },
   {
     names: { zh: "第 5 关：点亮月亮桥", en: "Level 5: Light the moon bridge" },
@@ -217,7 +221,7 @@ const levels = [
       "#.########.####.#..#",
       "#....*.....#..K.D..#",
       "#.##########.####..#",
-      "#..~~~~~......*E...#",
+      "#F.~~~~~......*E...#",
       "#....#....#....#...#", // Cut the highway
       "####################",
     ],
@@ -226,6 +230,7 @@ const levels = [
       { x: 12.5, y: 9.5, minX: 7.5, maxX: 16.5, speed: 1.5 },
       { x: 18.5, y: 4.5, minY: 1.5, maxY: 8.5, speed: 1.2, axis: "y" },
     ],
+    sticker: "Glow Frog"
   },
   {
     names: { zh: "第 6 关：打开最后的月光门", en: "Level 6: Open the final moon gate" },
@@ -234,7 +239,7 @@ const levels = [
       "####################",
       "#I..*....#.....*...#",
       "#.######.#.#######.#",
-      "#....#...#.....#...#",
+      "#....#...#.....#..F#",
       "####.#.#######.#.#.#",
       "#*...#...K.....D.#.#",
       "#.#####.#####.###..#",
@@ -250,6 +255,7 @@ const levels = [
       { x: 15.5, y: 1.5, minX: 12.5, maxX: 18.5, speed: 1.7 },
       { x: 18.5, y: 6.5, minY: 4.5, maxY: 10.5, speed: 1.3, axis: "y" },
     ],
+    sticker: "Tiny Dragon"
   },
 ];
 
@@ -300,6 +306,7 @@ function loadLevel(index) {
   state.walls = [];
   state.puddles = [];
   state.heartPickups = [];
+  state.flowers = [];
   state.key = null;
   state.hasKey = false;
   state.door = null;
@@ -316,6 +323,7 @@ function loadLevel(index) {
       if (cell === "K") state.key = { x: x + 0.5, y: y + 0.5, collected: false };
       if (cell === "~") state.puddles.push({ x, y });
       if (cell === "H") state.heartPickups.push({ x: x + 0.5, y: y + 0.5, collected: false });
+      if (cell === "F") state.flowers.push({ x: x + 0.5, y: y + 0.5, collected: false });
       if (cell === "D") state.door = { x, y };
       if (cell === "E") state.exit = { x: x + 0.5, y: y + 0.5 };
     });
@@ -331,7 +339,7 @@ function loadLevel(index) {
   els.seeds.textContent = `⭐ ${i18n[currentLang].seeds}：0 / ${state.totalSeeds}`;
   
   // Show level intro title overlay (briefly)
-  createFloatingText(level.names[currentLang], state.player.x, state.player.y - 1);
+  showToast(level.names[currentLang], 2.5);
   
   updateHud();
 }
@@ -506,6 +514,17 @@ function collectItems() {
       createFloatingText("+1 ❤️", state.player.x, state.player.y);
     }
   });
+
+  state.flowers.forEach((flower) => {
+    if (!flower.collected && distance(flower, state.player) < 0.55) {
+      flower.collected = true;
+      const stickerName = levels[levelIndex].sticker;
+      localStorage.setItem("moonGardenSticker_" + levelIndex, stickerName);
+      showToast(`Unlocked Sticker: ${stickerName}!`, 2);
+      createParticles(flower.x * TILE, flower.y * TILE, "#e0aaff");
+      soundManager.playRefill(); // Reuse refill sound for now
+    }
+  });
 }
 
 function checkShadowHits() {
@@ -557,11 +576,38 @@ function showLevelCompleteScreen() {
     const allSeeds = state.seeds.every(s => s.collected);
     if (allSeeds) stars++;
     if (livesLostThisLevel === 0) stars++;
-    if (stars === 2) stars++;
+    const flowerCollected = state.flowers.every(f => f.collected);
+    if (flowerCollected) stars++;
     
     let starsStr = "⭐".repeat(stars) + "☆".repeat(3 - stars);
     
     const t = i18n[currentLang];
+    
+    if (levelIndex === levels.length - 1) {
+        // Final Level! Show End Screen
+        const endOverlay = document.querySelector("#end-overlay");
+        const endStats = document.querySelector("#end-stats");
+        const stickerContainer = document.querySelector("#sticker-container");
+        
+        endStats.textContent = `Total Stars: ${stars} | Time: ${formatTime(levelTime)}`;
+        
+        // Populate stickers
+        stickerContainer.innerHTML = "";
+        levels.forEach((lvl, idx) => {
+            const unlocked = localStorage.getItem("moonGardenSticker_" + idx);
+            const stickerEl = document.createElement("div");
+            stickerEl.className = "pill";
+            stickerEl.style.background = unlocked ? "#e0aaff" : "#eee";
+            stickerEl.textContent = unlocked ? lvl.sticker : "???";
+            stickerContainer.appendChild(stickerEl);
+        });
+        
+        endOverlay.classList.remove("hidden");
+        endOverlay.setAttribute("aria-hidden", "false");
+        soundManager.playWin();
+        return;
+    }
+    
     document.querySelector(".stars-display").textContent = starsStr;
     els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} | ${t.time}: ${formatTime(levelTime)} | ${t.hits}: ${livesLostThisLevel}`;
     
@@ -688,12 +734,29 @@ function draw() {
   drawSeeds();
   drawKey();
   drawHeartPickups();
+  drawFlowers();
   drawShadows();
   drawPlayer();
   drawParticles();
   drawHintPath();
   
   ctx.restore();
+}
+
+function drawFlowers() {
+  state.flowers.forEach((flower) => {
+    if (flower.collected) return;
+    const x = flower.x * TILE;
+    const y = flower.y * TILE;
+    ctx.fillStyle = "#e0aaff"; // Light purple
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
 }
 
 function drawGarden() {
@@ -914,6 +977,16 @@ els.continue.addEventListener("click", () => {
     if (progress) {
         startGame(parseInt(progress, 10));
     }
+});
+
+document.querySelector("#playAgainBtn").addEventListener("click", () => {
+    document.querySelector("#end-overlay").classList.add("hidden");
+    localStorage.removeItem("moonGardenProgress");
+    startGame(0);
+});
+
+document.querySelector("#showStickersBtn").addEventListener("click", () => {
+    alert("Your stickers are displayed above!");
 });
 
 draw();
