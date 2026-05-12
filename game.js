@@ -583,22 +583,42 @@ function movePlayer(dt) {
     dy *= Math.SQRT1_2;
   }
 
-  let speedMultiplier = currentSpeedMultiplier();
+  let speedMultiplier = currentSpeedMultiplier(state.player);
   const speed = state.player.speed * speedMultiplier;
-  tryMove(dx * speed * dt, 0);
-  tryMove(0, dy * speed * dt);
-}
+  tryMove(state.player, dx * speed * dt, 0);
+  tryMove(state.player, 0, dy * speed * dt);
 
-function tryMove(dx, dy) {
-  const next = { x: state.player.x + dx, y: state.player.y + dy };
-  if (!collides(next.x, next.y)) {
-    state.player.x = next.x;
-    state.player.y = next.y;
+  // Player 2
+  if (vsMode) {
+    let dx2 = 0;
+    let dy2 = 0;
+    if (keys.has("a")) dx2 -= 1;
+    if (keys.has("d")) dx2 += 1;
+    if (keys.has("w")) dy2 -= 1;
+    if (keys.has("s")) dy2 += 1;
+    
+    if (dx2 && dy2) {
+      dx2 *= Math.SQRT1_2;
+      dy2 *= Math.SQRT1_2;
+    }
+    
+    let speedMultiplier2 = currentSpeedMultiplier(state.player2);
+    const speed2 = state.player2.speed * speedMultiplier2;
+    tryMove(state.player2, dx2 * speed2 * dt, 0);
+    tryMove(state.player2, 0, dy2 * speed2 * dt);
   }
 }
 
-function collides(x, y) {
-  const r = state.player.radius / TILE;
+function tryMove(player, dx, dy) {
+  const next = { x: player.x + dx, y: player.y + dy };
+  if (!collides(player, next.x, next.y)) {
+    player.x = next.x;
+    player.y = next.y;
+  }
+}
+
+function collides(player, x, y) {
+  const r = player.radius / TILE;
   const probes = [
     [x - r, y - r],
     [x + r, y - r],
@@ -620,9 +640,9 @@ function isWall(x, y) {
   return state.walls.some((wall) => wall.x === x && wall.y === y);
 }
 
-function currentSpeedMultiplier() {
-  const tx = Math.floor(state.player.x);
-  const ty = Math.floor(state.player.y);
+function currentSpeedMultiplier(player) {
+  const tx = Math.floor(player.x);
+  const ty = Math.floor(player.y);
   return state.puddles.some((puddle) => puddle.x === tx && puddle.y === ty) ? 0.58 : 1;
 }
 
