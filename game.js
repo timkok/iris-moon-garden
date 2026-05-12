@@ -353,7 +353,6 @@ function switchLanguage(lang) {
     els.titleText.textContent = t.title;
     els.hudTitle.textContent = t.title; // Fix HUD title translation
     els.overlayCopy.textContent = t.intro;
-    els.cozyLabel.textContent = t.cozyLabel;
     els.start.textContent = t.startBtn;
     els.restart.textContent = t.restartBtn;
     els.pause.textContent = paused ? t.pauseBtnActive : t.pauseBtn;
