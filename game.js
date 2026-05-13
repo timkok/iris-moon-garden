@@ -84,7 +84,7 @@ const i18n = {
         helpBtn: "提示 / 帮我一下",
         helpBtnActive: "隐藏指引",
         hintSolo: "单人：方向键或 WASD 移动 · 空格暂停",
-        hintCoop: "双人：Iris = WASD · Luna = 方向键 · 空格 = 暂停",
+        hintCoop: "双人：Iris 小女孩 = WASD · Luna 小猫 = 方向键 · 空格 = 暂停",
         completeTitle: "闯关成功！",
         nextLevelBtn: "下一关",
         playAgainBtn: "再玩一次",
@@ -108,10 +108,10 @@ const i18n = {
         retryTitle: "这次飞得很棒！",
         retryCopy: "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？",
         endTitle: "月光花园再次闪耀！",
-        endCopy: "你和小伙伴完成了所有冒险。",
+        endCopy: "Iris 和 Luna 小猫完成了所有冒险。",
         coopBtnOff: "☐ 双人合作：Iris + Luna",
         coopBtnOn: "☑ 双人合作：Iris + Luna",
-        coopHelp: "两位小伙伴一起收集星种子，一起打开月光门。",
+        coopHelp: "Iris 小女孩和 Luna 小猫一起收集星种子，打开月光门。",
         flowersFound: "找到的月光花：{n} / {total}",
         stickersUnlocked: "解锁的贴纸：{n} / {total}",
         irisLabel: "Iris",
@@ -135,7 +135,7 @@ const i18n = {
         helpBtn: "Hint / Help me",
         helpBtnActive: "Hide Hint",
         hintSolo: "Solo: Arrow Keys or WASD to move · Space to pause",
-        hintCoop: "Two-player: Iris = WASD · Luna = Arrow Keys · Space = Pause",
+        hintCoop: "Two-player: Iris the girl = WASD · Luna the cat = Arrow Keys · Space = Pause",
         completeTitle: "Level Complete!",
         nextLevelBtn: "Next Level",
         playAgainBtn: "Play Again",
@@ -159,10 +159,10 @@ const i18n = {
         retryTitle: "Great flight!",
         retryCopy: "Try again, Iris is getting closer to the Moon Tree. Want to try Cozy Mode?",
         endTitle: "The Moon Garden is glowing again!",
-        endCopy: "You and your friend completed every adventure.",
+        endCopy: "Iris and Luna the cat completed every adventure.",
         coopBtnOff: "☐ Two-player Co-op: Iris + Luna",
         coopBtnOn: "☑ Two-player Co-op: Iris + Luna",
-        coopHelp: "Both players help collect star seeds and open the moon gate together.",
+        coopHelp: "Iris the girl and Luna the cat collect star seeds and open the moon gate together.",
         flowersFound: "Moon Flowers Found: {n} / {total}",
         stickersUnlocked: "Stickers Unlocked: {n} / {total}",
         irisLabel: "Iris",
@@ -1283,31 +1283,61 @@ function drawPlayer() {
   
   ctx.globalAlpha = state.player.invincible > 0 && Math.floor(sparkle * 12) % 2 === 0 ? 0.55 : 1;
   
-  // Draw glow
   ctx.beginPath();
-  ctx.arc(x, y, 18, 0, Math.PI * 2);
+  ctx.arc(x, y, 20, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(255, 117, 140, 0.3)";
   ctx.fill();
 
-  // Draw wings
-  ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-  const wingSpan = 10 + Math.sin(sparkle * 10) * 5;
+  // Lantern glow
   ctx.beginPath();
-  ctx.ellipse(x - 8, y - 5, 12, wingSpan, Math.PI / 4, 0, Math.PI * 2);
-  ctx.ellipse(x + 8, y - 5, 12, wingSpan, -Math.PI / 4, 0, Math.PI * 2);
+  ctx.arc(x + 14, y + 2, 9 + Math.sin(sparkle * 8) * 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 223, 118, 0.45)";
   ctx.fill();
+  ctx.strokeStyle = "rgba(104, 79, 55, 0.65)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x + 7, y - 4);
+  ctx.lineTo(x + 14, y + 2);
+  ctx.stroke();
 
-  // Draw body
+  // Dress
   ctx.fillStyle = "#ff758c";
   ctx.beginPath();
-  ctx.arc(x, y, 12, 0, Math.PI * 2);
+  ctx.moveTo(x, y - 3);
+  ctx.lineTo(x - 12, y + 14);
+  ctx.lineTo(x + 12, y + 14);
+  ctx.closePath();
   ctx.fill();
-  
-  // Draw label
-  ctx.fillStyle = "#fff";
+
+  // Head and hair
+  ctx.fillStyle = "#ffd3bd";
+  ctx.beginPath();
+  ctx.arc(x, y - 12, 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#5a3825";
+  ctx.beginPath();
+  ctx.arc(x, y - 15, 10, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(x - 9, y - 14, 18, 5);
+
+  // Arms and legs
+  ctx.strokeStyle = "#6b3f2f";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x - 7, y + 2);
+  ctx.lineTo(x - 14, y + 8);
+  ctx.moveTo(x + 7, y + 2);
+  ctx.lineTo(x + 13, y + 4);
+  ctx.moveTo(x - 5, y + 14);
+  ctx.lineTo(x - 5, y + 20);
+  ctx.moveTo(x + 5, y + 14);
+  ctx.lineTo(x + 5, y + 20);
+  ctx.stroke();
+
+  ctx.fillStyle = "#243044";
   ctx.font = "bold 10px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Iris", x, y - 15);
+  ctx.fillText("Iris", x, y - 25);
   
   ctx.globalAlpha = 1;
 }
@@ -1318,31 +1348,70 @@ function drawPlayer2() {
   
   ctx.globalAlpha = state.player2.invincible > 0 && Math.floor(sparkle * 12) % 2 === 0 ? 0.55 : 1;
   
-  // Draw glow
   ctx.beginPath();
   ctx.arc(x, y, 18, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(123, 93, 200, 0.3)";
   ctx.fill();
 
-  // Draw wings
-  ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-  const wingSpan = 10 + Math.sin(sparkle * 10) * 5;
+  // Tail
+  ctx.strokeStyle = "#6f5a8f";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.ellipse(x - 8, y - 5, 12, wingSpan, Math.PI / 4, 0, Math.PI * 2);
-  ctx.ellipse(x + 8, y - 5, 12, wingSpan, -Math.PI / 4, 0, Math.PI * 2);
+  ctx.moveTo(x + 10, y + 6);
+  ctx.quadraticCurveTo(x + 23, y - 6, x + 12, y - 16 + Math.sin(sparkle * 8) * 2);
+  ctx.stroke();
+
+  // Cat body
+  ctx.fillStyle = "#7b5dc8";
+  ctx.beginPath();
+  ctx.ellipse(x, y + 5, 12, 9, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Draw body
-  ctx.fillStyle = "#7b5dc8"; // Purple for P2
+  // Cat head
   ctx.beginPath();
-  ctx.arc(x, y, 12, 0, Math.PI * 2);
+  ctx.arc(x, y - 7, 10, 0, Math.PI * 2);
   ctx.fill();
-  
-  // Draw label
+
+  // Ears
+  ctx.beginPath();
+  ctx.moveTo(x - 8, y - 14);
+  ctx.lineTo(x - 12, y - 24);
+  ctx.lineTo(x - 2, y - 17);
+  ctx.closePath();
+  ctx.moveTo(x + 8, y - 14);
+  ctx.lineTo(x + 12, y - 24);
+  ctx.lineTo(x + 2, y - 17);
+  ctx.closePath();
+  ctx.fill();
+
+  // Face
   ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(x - 3.5, y - 9, 1.8, 0, Math.PI * 2);
+  ctx.arc(x + 3.5, y - 9, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffd6e5";
+  ctx.beginPath();
+  ctx.arc(x, y - 4, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x - 3, y - 3);
+  ctx.lineTo(x - 13, y - 6);
+  ctx.moveTo(x - 3, y);
+  ctx.lineTo(x - 13, y + 1);
+  ctx.moveTo(x + 3, y - 3);
+  ctx.lineTo(x + 13, y - 6);
+  ctx.moveTo(x + 3, y);
+  ctx.lineTo(x + 13, y + 1);
+  ctx.stroke();
+
+  ctx.fillStyle = "#243044";
   ctx.font = "bold 10px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Luna", x, y - 15);
+  ctx.fillText("Luna", x, y - 29);
   
   ctx.globalAlpha = 1;
 }
