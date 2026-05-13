@@ -15,6 +15,15 @@ const els = {
   start: document.querySelector("#startBtn"),
   restart: document.querySelector("#restartBtn"),
   pause: document.querySelector("#pauseBtn"),
+  magicHelp: document.querySelector("#magicHelpBtn"),
+  magicPanel: document.querySelector("#magic-help-panel"),
+  magicTitle: document.querySelector("#magicHelpTitle"),
+  magicHeart1: document.querySelector("#magicHeart1Btn"),
+  magicHeart3: document.querySelector("#magicHeart3Btn"),
+  magicSlow: document.querySelector("#magicSlowBtn"),
+  magicPath: document.querySelector("#magicPathBtn"),
+  magicSkip: document.querySelector("#magicSkipBtn"),
+  magicCozy: document.querySelector("#magicCozyBtn"),
   toast: document.querySelector("#toast"),
   help: document.querySelector("#helpBtn"),
   hud: document.querySelector("#hud"),
@@ -55,6 +64,7 @@ const els = {
 
 const TILE = 48;
 let MAX_HEARTS = 3;
+const HEART_CAP = 9;
 const keys = new Set();
 let lastTime = 0;
 let running = false;
@@ -76,6 +86,9 @@ let livesLostThisLevel = 0;
 let currentLang = "en"; // Default to English as requested
 let coopMode = false;
 let difficultyMode = "cozy";
+let levelAssist = {};
+let recentHitTimes = [];
+const restartCounts = {};
 
 const i18n = {
     zh: {
@@ -91,6 +104,24 @@ const i18n = {
         pauseBtnActive: "继续",
         helpBtn: "提示 / 帮我一下",
         helpBtnActive: "隐藏指引",
+        magicHelpBtn: "✨ 魔法帮助",
+        magicHelpTitle: "✨ 魔法帮助",
+        magicHeart1: "+1 颗爱心",
+        magicHeart3: "+3 颗爱心",
+        magicSlow: "影子变慢",
+        magicPath: "显示路线",
+        magicSkip: "跳过本关",
+        magicCozy: "开启温馨辅助",
+        magicHeartToast: "月光给你多一颗爱心！",
+        magicThreeToast: "月光给你三颗爱心！",
+        magicSlowToast: "影子慢下来啦。",
+        magicCozyToast: "温馨辅助已经打开。",
+        magicSkipToast: "月光帮你轻轻跳到下一关。",
+        assistComplete: "你用了月光魔法完成本关。",
+        tryMoreStars: "想要更多星星的话，可以以后再试一次。",
+        greatJob: "太棒了！",
+        gardenHelp: "月光花园想帮帮你！",
+        extraHeartOffer: "要不要多一颗爱心？",
         hintSolo: "单人：方向键或 WASD 移动 · 空格暂停",
         hintCoop: "双人：Iris 小女孩 = WASD · Luna 小猫 = 方向键 · 空格 = 暂停",
         completeTitle: "闯关成功！",
@@ -158,6 +189,24 @@ const i18n = {
         pauseBtnActive: "Resume",
         helpBtn: "Hint / Help me",
         helpBtnActive: "Hide Hint",
+        magicHelpBtn: "✨ Magic Help",
+        magicHelpTitle: "✨ Magic Help",
+        magicHeart1: "+1 Heart",
+        magicHeart3: "+3 Hearts",
+        magicSlow: "Slow Shadows",
+        magicPath: "Show Path",
+        magicSkip: "Skip Level",
+        magicCozy: "Turn on Cozy Assist",
+        magicHeartToast: "Moon magic added one heart!",
+        magicThreeToast: "Moon magic added three hearts!",
+        magicSlowToast: "The shadows are slower now.",
+        magicCozyToast: "Cozy Assist is on.",
+        magicSkipToast: "Moon magic gently skipped this level.",
+        assistComplete: "You used moon magic to finish the level.",
+        tryMoreStars: "Try again for more stars if you want.",
+        greatJob: "Great job!",
+        gardenHelp: "The Moon Garden wants to help you!",
+        extraHeartOffer: "Would you like an extra heart?",
         hintSolo: "Solo: Arrow Keys or WASD to move · Space to pause",
         hintCoop: "Two-player: Iris the girl = WASD · Luna the cat = Arrow Keys · Space = Pause",
         completeTitle: "Level Complete!",
@@ -912,6 +961,7 @@ const state = {
   switches: [],
   bridges: [],
   guardians: [],
+  safeZones: [],
   door: null,
   totalSeeds: 0,
   particles: [],
@@ -956,7 +1006,7 @@ function challengeUnlocked() {
 const difficultySettings = {
   cozy: { hearts: 5, shadowSpeed: 0.7, invincible: 2.0, heartLimit: Infinity },
   adventure: { hearts: 3, shadowSpeed: 1, invincible: 1.4, heartLimit: Infinity },
-  challenge: { hearts: 3, shadowSpeed: 1.28, invincible: 1.0, heartLimit: 1 },
+  challenge: { hearts: 3, shadowSpeed: 1.18, invincible: 1.0, heartLimit: 1 },
 };
 
 function activeDifficulty() {
@@ -1020,6 +1070,8 @@ function levelCompletionStars() {
   if (livesLostThisLevel <= 1) stars++;
   const flowerCollected = state.flowers.length > 0 && state.flowers.every((f) => f.collected);
   if (flowerCollected) stars++;
+  if (levelAssist.skip || levelAssist.cozyAssist || levelAssist.add3) stars = Math.min(stars, 1);
+  else if (levelAssist.add1 || levelAssist.slow) stars = Math.min(stars, 2);
   return stars;
 }
 
@@ -1031,10 +1083,13 @@ function renderCompleteOverlayContent(stars = levelCompletionStars()) {
   if (!els.completeStats) return;
   const collected = state.seeds.filter((s) => s.collected).length;
   const flowerText = state.flowers.some((f) => f.collected) ? t.flowerFound : t.flowerMissing;
+  const assistText = levelAssist.skip || levelAssist.cozyAssist || levelAssist.add3 || levelAssist.add1 || levelAssist.slow
+    ? ` · ${t.assistComplete} ${t.tryMoreStars}`
+    : ` · ${t.greatJob}`;
   if (coopMode) {
-    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}`;
+    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}${assistText}`;
   } else {
-    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.hits}: ${livesLostThisLevel} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}`;
+    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.hits}: ${livesLostThisLevel} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}${assistText}`;
   }
 }
 
@@ -1081,6 +1136,14 @@ function switchLanguage(lang) {
     els.restart.textContent = t.restartBtn;
     els.pause.textContent = paused ? t.pauseBtnActive : t.pauseBtn;
     els.help.textContent = showHintPath ? t.helpBtnActive : t.helpBtn;
+    if (els.magicHelp) els.magicHelp.textContent = t.magicHelpBtn;
+    if (els.magicTitle) els.magicTitle.textContent = t.magicHelpTitle;
+    if (els.magicHeart1) els.magicHeart1.textContent = t.magicHeart1;
+    if (els.magicHeart3) els.magicHeart3.textContent = t.magicHeart3;
+    if (els.magicSlow) els.magicSlow.textContent = t.magicSlow;
+    if (els.magicPath) els.magicPath.textContent = t.magicPath;
+    if (els.magicSkip) els.magicSkip.textContent = t.magicSkip;
+    if (els.magicCozy) els.magicCozy.textContent = t.magicCozy;
     if (els.coopHelp) els.coopHelp.textContent = t.coopHelp;
     if (els.selectLevelLabel) els.selectLevelLabel.textContent = `${t.selectLevel}:`;
     document.title = t.title;
@@ -1172,6 +1235,7 @@ function loadLevel(index) {
   state.switches = [];
   state.bridges = [];
   state.guardians = [];
+  state.safeZones = [];
   state.key = null;
   state.hasKey = false;
   state.door = null;
@@ -1220,9 +1284,16 @@ function loadLevel(index) {
   });
 
   state.totalSeeds = state.seeds.length;
+  if (index >= 4) {
+    const anchor = state.heartPickups[0] || state.switches[0] || state.key || state.seeds[0] || state.exit;
+    if (anchor) state.safeZones.push({ x: anchor.x, y: anchor.y, radius: 1.25 });
+  }
   state.player.invincible = 1;
+  state.player2.invincible = 1;
   levelTime = 0;
   livesLostThisLevel = 0;
+  recentHitTimes = [];
+  levelAssist = {};
   
   els.mission.textContent = state.key
     ? i18n[currentLang].keyLine
@@ -1427,6 +1498,8 @@ function moveShadows(dt) {
     const max = axis === "x" ? shadow.maxX : shadow.maxY;
     
     let speed = shadow.speed * activeDifficulty().shadowSpeed;
+    if (levelAssist.slow || levelAssist.cozyAssist) speed *= 0.65;
+    if (difficultyMode === "cozy" && livesLostThisLevel >= 3) speed *= 0.85;
 
     shadow[axis] += shadow.dir * speed * dt;
     if (shadow[axis] > max) {
@@ -1494,15 +1567,15 @@ function collectItems() {
     if (heart.collected) return;
     if (distance(heart, state.player) < 0.55) {
       heart.collected = true;
-      if (hearts < MAX_HEARTS) {
-        hearts += 1;
+      if (hearts < HEART_CAP) {
+        hearts = Math.min(HEART_CAP, hearts + 1);
         soundManager.playRefill();
         createFloatingText("+1 ❤️", state.player.x, state.player.y);
       }
     } else if (coopMode && distance(heart, state.player2) < 0.55) {
       heart.collected = true;
-      if (hearts < MAX_HEARTS) {
-        hearts += 1;
+      if (hearts < HEART_CAP) {
+        hearts = Math.min(HEART_CAP, hearts + 1);
         soundManager.playRefill();
         createFloatingText("+1 ❤️", state.player2.x, state.player2.y);
       }
@@ -1544,6 +1617,7 @@ function checkShadowHits() {
     if (hit) {
       hearts -= 1;
       livesLostThisLevel++;
+      registerHit();
       state.player.invincible = activeDifficulty().invincible;
       state.screenShake = 0.3;
       soundManager.playHit();
@@ -1557,6 +1631,7 @@ function checkShadowHits() {
     if (hit2) {
       hearts -= 1;
       livesLostThisLevel++;
+      registerHit();
       state.player2.invincible = activeDifficulty().invincible;
       state.screenShake = 0.3;
       soundManager.playHit();
@@ -1565,10 +1640,64 @@ function checkShadowHits() {
   }
 }
 
+function registerHit() {
+  recentHitTimes.push(levelTime);
+  recentHitTimes = recentHitTimes.filter((time) => levelTime - time <= 30);
+  if (recentHitTimes.length >= 3 && !levelAssist.hitOfferShown) {
+    levelAssist.hitOfferShown = true;
+    showToast(`${i18n[currentLang].gardenHelp} ${i18n[currentLang].extraHeartOffer}`, 3.2);
+    showMagicHelp(true);
+  }
+}
+
 function restartCurrentLevelSoftly() {
   showToast(i18n[currentLang].toastGameOver, 1.4);
   hearts = MAX_HEARTS;
   loadLevel(levelIndex);
+}
+
+function addHearts(amount, assistKey) {
+  hearts = Math.min(HEART_CAP, hearts + amount);
+  levelAssist[assistKey] = true;
+  updateHud();
+  soundManager.playRefill();
+  showToast(amount >= 3 ? i18n[currentLang].magicThreeToast : i18n[currentLang].magicHeartToast, 1.7);
+}
+
+function showMagicHelp(show = true) {
+  setHidden(els.magicPanel, !show);
+}
+
+function triggerPathHint(duration = 3) {
+  showHintPath = true;
+  hintTimer = Math.max(hintTimer, duration);
+  els.help.textContent = i18n[currentLang].helpBtnActive;
+  showToast(i18n[currentLang].hintReady, 1.2);
+}
+
+function skipLevel() {
+  if (!running) return;
+  levelAssist.skip = true;
+  state.seeds.forEach((seed) => { seed.collected = true; });
+  state.flowers.forEach((flower) => { flower.collected = false; });
+  state.hasKey = true;
+  state.switches.forEach((sw) => { sw.activated = true; });
+  running = false;
+  showToast(i18n[currentLang].magicSkipToast, 1.6);
+  showLevelCompleteScreen();
+}
+
+function handleRestartAssist() {
+  restartCounts[levelIndex] = (restartCounts[levelIndex] || 0) + 1;
+  if (restartCounts[levelIndex] === 2) {
+    levelAssist.restartHeart = true;
+    addHearts(1, "add1");
+    showToast(`${i18n[currentLang].gardenHelp} ${i18n[currentLang].magicHeartToast}`, 2.2);
+  }
+  if (restartCounts[levelIndex] >= 3) {
+    showMagicHelp(true);
+    triggerPathHint(5);
+  }
 }
 
 function checkExit() {
@@ -1756,6 +1885,7 @@ function draw() {
   }
   
   drawGarden();
+  drawSafeZones();
   drawBridges();
   drawExit();
   drawDoor();
@@ -1788,6 +1918,18 @@ function drawFlowers() {
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
     ctx.fill();
+  });
+}
+
+function drawSafeZones() {
+  state.safeZones.forEach((zone) => {
+    ctx.fillStyle = "rgba(255, 250, 240, 0.32)";
+    ctx.strokeStyle = "rgba(255, 232, 148, 0.55)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(zone.x * TILE, zone.y * TILE, zone.radius * TILE, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
   });
 }
 
@@ -2152,6 +2294,7 @@ els.start.addEventListener("click", () => {
 
 els.restart.addEventListener("click", () => {
     startGame(levelIndex);
+    handleRestartAssist();
 });
 
 els.pause.addEventListener("click", () => {
@@ -2161,10 +2304,28 @@ els.pause.addEventListener("click", () => {
 });
 
 els.help.addEventListener("click", () => {
-    showHintPath = true;
-    hintTimer = 3;
-    showToast(i18n[currentLang].hintReady, 1.2);
-    els.help.textContent = i18n[currentLang].helpBtnActive;
+    triggerPathHint(livesLostThisLevel >= 3 ? 6 : 3);
+});
+
+if (els.magicHelp) els.magicHelp.addEventListener("click", () => showMagicHelp(els.magicPanel.hidden));
+if (els.magicHeart1) els.magicHeart1.addEventListener("click", () => addHearts(1, "add1"));
+if (els.magicHeart3) els.magicHeart3.addEventListener("click", () => addHearts(3, "add3"));
+if (els.magicSlow) els.magicSlow.addEventListener("click", () => {
+  levelAssist.slow = true;
+  showToast(i18n[currentLang].magicSlowToast, 1.7);
+});
+if (els.magicPath) els.magicPath.addEventListener("click", () => triggerPathHint(6));
+if (els.magicSkip) els.magicSkip.addEventListener("click", skipLevel);
+if (els.magicCozy) els.magicCozy.addEventListener("click", () => {
+  levelAssist.cozyAssist = true;
+  difficultyMode = "cozy";
+  cozyMode = true;
+  MAX_HEARTS = Math.max(MAX_HEARTS, difficultySettings.cozy.hearts);
+  hearts = Math.max(hearts, MAX_HEARTS);
+  writeSave({ difficulty: "cozy", cozyMode: true });
+  updateDifficultyUI();
+  updateHud();
+  showToast(i18n[currentLang].magicCozyToast, 1.7);
 });
 
 els.muteBtn.addEventListener("click", () => {

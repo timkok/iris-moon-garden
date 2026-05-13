@@ -108,6 +108,7 @@
         <button id="restartBtn" type="button">Restart</button>
         <button id="pauseBtn" type="button">Pause</button>
         <button id="helpBtn" type="button">Hint / Help me</button>
+        <button id="magicHelpBtn" type="button">✨ Magic Help</button>
         <p class="hint" id="hint-text">Solo: Arrow Keys or WASD to move · Space to pause</p>
         
         <!-- Mobile D-Pad (Hidden on desktop via CSS) -->
@@ -118,13 +119,24 @@
           <button data-dir="right" type="button">→</button>
         </div>
       </div>
+      <div id="magic-help-panel" class="hidden" hidden aria-hidden="true" style="position: absolute; right: 24px; bottom: 92px; z-index: 120; width: min(260px, calc(100% - 48px)); background: rgba(255,250,240,0.98); border: 1px solid #ddd1c0; border-radius: 8px; padding: 12px; box-shadow: 0 16px 38px rgba(23,35,52,0.22);">
+        <div id="magicHelpTitle" style="font-weight: 900; color: #243044; margin-bottom: 8px;">✨ Magic Help</div>
+        <div style="display: grid; gap: 8px;">
+          <button id="magicHeart1Btn" type="button">+1 Heart</button>
+          <button id="magicHeart3Btn" type="button">+3 Hearts</button>
+          <button id="magicSlowBtn" type="button">Slow Shadows</button>
+          <button id="magicPathBtn" type="button">Show Path</button>
+          <button id="magicSkipBtn" type="button">Skip Level</button>
+          <button id="magicCozyBtn" type="button">Turn on Cozy Assist</button>
+        </div>
+      </div>
     </section>
   </main>
 
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
-  <script src="./audio.js?v=109"></script>
-  <script src="./game.js?v=109"></script>
+  <script src="./audio.js?v=110"></script>
+  <script src="./game.js?v=110"></script>
   <script src="./bot.js"></script>
 </body>
 </html>
