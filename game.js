@@ -111,17 +111,25 @@ const i18n = {
         magicSlow: "影子变慢",
         magicPath: "显示路线",
         magicSkip: "跳过本关",
-        magicCozy: "开启温馨辅助",
+        magicCozy: "延长月亮桥",
         magicHeartToast: "月光给你多一颗爱心！",
         magicThreeToast: "月光给你三颗爱心！",
         magicSlowToast: "影子慢下来啦。",
         magicCozyToast: "温馨辅助已经打开。",
+        magicBridgeToast: "月亮桥会多亮一会儿。",
         magicSkipToast: "月光帮你轻轻跳到下一关。",
         assistComplete: "你用了月光魔法完成本关。",
+        magicUsed: "魔法帮助：{value}",
+        yes: "使用了",
+        no: "没有使用",
         tryMoreStars: "想要更多星星的话，可以以后再试一次。",
         greatJob: "太棒了！",
         gardenHelp: "月光花园想帮帮你！",
         extraHeartOffer: "要不要多一颗爱心？",
+        objectiveKey: "先找到月亮钥匙",
+        objectiveSwitch: "踩亮月光开关",
+        objectiveSeeds: "收集星种子：{n} / {total}",
+        objectiveGate: "走进月光门",
         hintSolo: "单人：方向键或 WASD 移动 · 空格暂停",
         hintCoop: "双人：Iris 小女孩 = WASD · Luna 小猫 = 方向键 · 空格 = 暂停",
         completeTitle: "闯关成功！",
@@ -196,17 +204,25 @@ const i18n = {
         magicSlow: "Slow Shadows",
         magicPath: "Show Path",
         magicSkip: "Skip Level",
-        magicCozy: "Turn on Cozy Assist",
+        magicCozy: "Extend Bridge Time",
         magicHeartToast: "Moon magic added one heart!",
         magicThreeToast: "Moon magic added three hearts!",
         magicSlowToast: "The shadows are slower now.",
         magicCozyToast: "Cozy Assist is on.",
+        magicBridgeToast: "The moon bridge will glow longer.",
         magicSkipToast: "Moon magic gently skipped this level.",
         assistComplete: "You used moon magic to finish the level.",
+        magicUsed: "Magic Help used: {value}",
+        yes: "Yes",
+        no: "No",
         tryMoreStars: "Try again for more stars if you want.",
         greatJob: "Great job!",
         gardenHelp: "The Moon Garden wants to help you!",
         extraHeartOffer: "Would you like an extra heart?",
+        objectiveKey: "Find the moon key first",
+        objectiveSwitch: "Step on the moon switch",
+        objectiveSeeds: "Collect star seeds: {n} / {total}",
+        objectiveGate: "Enter the moon gate",
         hintSolo: "Solo: Arrow Keys or WASD to move · Space to pause",
         hintCoop: "Two-player: Iris the girl = WASD · Luna the cat = Arrow Keys · Space = Pause",
         completeTitle: "Level Complete!",
@@ -568,123 +584,130 @@ function makeLevel(index, en, zh, missionEn, missionZh, map, shadows = [], optio
     fireflies: options.fireflies || false,
     stormSeeds: options.stormSeeds || false,
     guardian: options.guardian || false,
+    bridgeDuration: options.bridgeDuration || 0,
   };
 }
 
 function createAdventureLevels() {
   return [
     makeLevel(0, "Wake the Sleeping Stars", "唤醒沉睡的星星",
-      "Learn to move, collect every star seed, and step into the moon gate.",
-      "学习移动，收集所有星光种子，然后走进月光门。",
+      "Collect eight star seeds, rest in the safe glow, and reach the moon gate.",
+      "收集 8 颗星光种子，在安全月光里休息，再走进月光门。",
       [
         "####################",
-        "#I..*.............F#",
-        "#..................#",
-        "#......*...........#",
-        "#..................#",
-        "#..........*.......#",
-        "#..................#",
-        "#....*.............#",
-        "#..................#",
-        "#...............E..#",
-        "#..................#",
-        "####################",
-      ]),
-    makeLevel(1, "Misty Pond", "迷雾池塘",
-      "Blue ponds slow Iris and Luna down. Cross them calmly.",
-      "蓝色池塘会让 Iris 和 Luna 变慢，慢慢穿过去。",
-      [
-        "####################",
-        "#I..*.......F......#",
-        "#..~~~~............#",
-        "#..~~~~....*.......#",
-        "#..................#",
-        "#......~~~~........#",
-        "#......~~~~..*.....#",
-        "#..................#",
-        "#....*.......~~~~..#",
-        "#............~~~~E.#",
-        "#..................#",
-        "####################",
-      ]),
-    makeLevel(2, "Dancing Shadow", "跳舞的阴影",
-      "A slow shadow dances back and forth. Watch its path.",
-      "一个慢慢移动的阴影来回跳舞，观察它的路线。",
-      [
-        "####################",
-        "#I..*.............F#",
-        "#..................#",
-        "#......*...........#",
-        "#..................#",
-        "#..........*.......#",
-        "#..................#",
-        "#....*.............#",
-        "#..................#",
-        "#...............E..#",
-        "#..................#",
-        "####################",
-      ],
-      [{ x: 10.5, y: 5.5, minX: 7.5, maxX: 14.5, speed: 0.9 }]),
-    makeLevel(3, "Hidden Heart", "隐藏爱心",
-      "Hearts gently refill lives. There is still time to explore.",
-      "爱心会温柔地恢复生命，可以放心探索。",
-      [
-        "####################",
-        "#I..*.........H...F#",
-        "#..####............#",
-        "#.....#...*........#",
-        "#.....#............#",
-        "#.....#......*.....#",
-        "#.....#............#",
-        "#..*..#............#",
-        "#.....#............#",
-        "#.....#.........E..#",
-        "#..................#",
-        "####################",
-      ],
-      [{ x: 8.5, y: 7.5, minY: 4.5, maxY: 9.5, speed: 0.9, axis: "y" }]),
-    makeLevel(4, "Moon Bridge", "月亮桥",
-      "Narrow paths and ponds make a gentle bridge challenge.",
-      "窄路和池塘组成温柔的月亮桥挑战。",
-      [
-        "####################",
-        "#I..*..#.......*..F#",
-        "#.....#..~~~~......#",
-        "#.....#..~~~~......#",
-        "#.....#............#",
-        "#..*..######..*....#",
-        "#............~~~~..#",
-        "#............~~~~..#",
-        "#....H.............#",
-        "#...............E..#",
-        "#..................#",
-        "####################",
-      ],
-      [
-        { x: 12.5, y: 5.5, minX: 9.5, maxX: 16.5, speed: 1.1 },
-        { x: 4.5, y: 8.5, minY: 5.5, maxY: 9.5, speed: 0.9, axis: "y" },
-      ]),
-    makeLevel(5, "First Moon Gate", "第一道月光门",
-      "A small milestone: seeds, ponds, shadows, key, and gate.",
-      "一个小小里程碑：星种子、池塘、阴影、钥匙和月光门。",
-      [
-        "####################",
-        "#I..*....#.....*..F#",
-        "#.####...#..~~~~...#",
-        "#....#...#..~~~~...#",
-        "#....#...#.........#",
-        "#.*..#...K.....D...#",
-        "#....#####.........#",
+        "#I..*.....#.....F..#",
+        "#.....*...#........#",
+        "#.........#..*.....#",
+        "#..*......#........#",
+        "#.....Z............#",
         "#.........*........#",
-        "#..H........~~~~...#",
-        "#...........~~~~E..#",
+        "#..*...............#",
+        "#............*..H..#",
+        "#...............E*.#",
+        "#..................#",
+        "####################",
+      ],
+      [{ x: 9.5, y: 5.5, minY: 2.5, maxY: 8.5, speed: 0.55, axis: "y" }]),
+    makeLevel(1, "Misty Pond Path", "迷雾池塘小路",
+      "Choose a short slow pond path or a longer dry path.",
+      "选择穿过池塘的短路，或绕开池塘的安全长路。",
+      [
+        "####################",
+        "#I..*.......#....F.#",
+        "#.....~~~~..#......#",
+        "#..*..~~~~..#..*...#",
+        "#.....~~~~.........#",
+        "#..........Z.......#",
+        "#..*.......#.......#",
+        "#..........#..*....#",
+        "#..~~~~....#.....H.#",
+        "#..~~~~.......*..E.#",
+        "#..................#",
+        "####################",
+      ],
+      [{ x: 6.5, y: 3.5, minY: 2.5, maxY: 5.5, speed: 0.75, axis: "y" }]),
+    makeLevel(2, "Dancing Shadow Patrol", "跳舞阴影巡逻",
+      "Watch two friendly patrol paths and use the safe island.",
+      "观察两条固定巡逻路线，也可以在中间安全岛休息。",
+      [
+        "####################",
+        "#I..*.........*..F.#",
+        "#..................#",
+        "#..*.....###.......#",
+        "#........Z.#.......#",
+        "#........###..*....#",
+        "#..*...............#",
+        "#..........*.......#",
+        "#.....H............#",
+        "#...............E..#",
         "#..................#",
         "####################",
       ],
       [
-        { x: 5.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.0, axis: "y" },
-        { x: 14.5, y: 8.5, minX: 10.5, maxX: 17.5, speed: 1.0 },
+        { x: 5.5, y: 3.5, minY: 1.5, maxY: 7.5, speed: 0.85, axis: "y" },
+        { x: 14.5, y: 6.5, minX: 10.5, maxX: 17.5, speed: 0.85 },
       ]),
+    makeLevel(3, "Moon Key Garden", "月亮钥匙花园",
+      "Find the moon key, gather the seeds, then open the gate.",
+      "先找到月亮钥匙，再收集星种子，最后打开月光门。",
+      [
+        "####################",
+        "#I..*....#....F....#",
+        "#........#..K......#",
+        "#..H.....#.........#",
+        "#........#..*......#",
+        "#..*.....#....D....#",
+        "#........#.........#",
+        "#....Z.......*.....#",
+        "#..H...............#",
+        "#............*..E..#",
+        "#..................#",
+        "####################",
+      ],
+      [{ x: 6.5, y: 6.5, minX: 3.5, maxX: 9.5, speed: 0.8 }]),
+    makeLevel(4, "Glow Switch Bridge", "发光开关桥",
+      "Step on the switch to open the moon bridge for a little while.",
+      "踩亮开关，月亮桥会打开一小会儿，错过了可以再踩一次。",
+      [
+        "####################",
+        "#I..*......B....EF.#",
+        "#..........B.......#",
+        "#..*..S....B..*....#",
+        "#..........B.......#",
+        "#.....Z....B.......#",
+        "#..........B..*....#",
+        "#..H.......B.......#",
+        "#..........B..*....#",
+        "#..................#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 5.5, y: 7.5, minY: 4.5, maxY: 8.5, speed: 0.85, axis: "y" },
+      ],
+      { requiresSwitch: true, bridgeDuration: 9 }),
+    makeLevel(5, "First Guardian", "第一位守护者",
+      "The garden guardian blocks the gate until every star seed wakes up.",
+      "花园守护者会守在门前，等所有星种子醒来后就会让开。",
+      [
+        "####################",
+        "#I..*......#...*..F#",
+        "#..........#.......#",
+        "#..*.......#.......#",
+        "#......Z...........#",
+        "#..........#...*...#",
+        "#..H.......#.......#",
+        "#..........#...G...#",
+        "#..*...............#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 6.5, y: 2.5, minX: 3.5, maxX: 9.5, speed: 0.9 },
+        { x: 12.5, y: 7.5, minY: 4.5, maxY: 9.5, speed: 0.85, axis: "y" },
+      ],
+      { guardian: true }),
     makeLevel(6, "Twinkling Maze", "闪烁迷宫",
       "A simple maze asks you to choose your path.",
       "简单迷宫会让你练习选择路线。",
@@ -966,6 +989,7 @@ const state = {
   totalSeeds: 0,
   particles: [],
   screenShake: 0,
+  bridgeTimer: 0,
 };
 
 const SAVE_KEY = "iris-moon-garden:v1";
@@ -1071,7 +1095,7 @@ function levelCompletionStars() {
   const flowerCollected = state.flowers.length > 0 && state.flowers.every((f) => f.collected);
   if (flowerCollected) stars++;
   if (levelAssist.skip || levelAssist.cozyAssist || levelAssist.add3) stars = Math.min(stars, 1);
-  else if (levelAssist.add1 || levelAssist.slow) stars = Math.min(stars, 2);
+  else if (levelAssist.add1 || levelAssist.slow || levelAssist.bridgeExtend) stars = Math.min(stars, 2);
   return stars;
 }
 
@@ -1083,13 +1107,15 @@ function renderCompleteOverlayContent(stars = levelCompletionStars()) {
   if (!els.completeStats) return;
   const collected = state.seeds.filter((s) => s.collected).length;
   const flowerText = state.flowers.some((f) => f.collected) ? t.flowerFound : t.flowerMissing;
-  const assistText = levelAssist.skip || levelAssist.cozyAssist || levelAssist.add3 || levelAssist.add1 || levelAssist.slow
+  const assistUsed = Boolean(levelAssist.skip || levelAssist.cozyAssist || levelAssist.add3 || levelAssist.add1 || levelAssist.slow || levelAssist.bridgeExtend);
+  const magicText = tt("magicUsed", { value: assistUsed ? t.yes : t.no });
+  const assistText = assistUsed
     ? ` · ${t.assistComplete} ${t.tryMoreStars}`
     : ` · ${t.greatJob}`;
   if (coopMode) {
-    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}${assistText}`;
+    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel} · ${magicText} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}${assistText}`;
   } else {
-    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.hits}: ${livesLostThisLevel} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}${assistText}`;
+    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.hits}: ${livesLostThisLevel} · ${magicText} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}${assistText}`;
   }
 }
 
@@ -1222,6 +1248,21 @@ function updateSeedsDisplay() {
   } else {
     els.seeds.textContent = `⭐ ${t.seeds}: ${collectedCount} / ${state.totalSeeds}`;
   }
+  updateObjectiveText();
+}
+
+function updateObjectiveText() {
+  if (!running || !levels[levelIndex]) return;
+  const collectedCount = state.seeds.filter((s) => s.collected).length;
+  if (state.key && !state.hasKey) {
+    els.mission.textContent = i18n[currentLang].objectiveKey;
+  } else if (state.switches.length && !bridgeOpen() && (state.bridges.length || state.seeds.some((seed) => seed.locked && !seed.collected))) {
+    els.mission.textContent = i18n[currentLang].objectiveSwitch;
+  } else if (collectedCount < state.totalSeeds) {
+    els.mission.textContent = tt("objectiveSeeds", { n: collectedCount, total: state.totalSeeds });
+  } else {
+    els.mission.textContent = i18n[currentLang].objectiveGate;
+  }
 }
 
 function loadLevel(index) {
@@ -1239,6 +1280,7 @@ function loadLevel(index) {
   state.key = null;
   state.hasKey = false;
   state.door = null;
+  state.bridgeTimer = 0;
   state.shadows = level.shadows.map((shadow) => ({ ...shadow, dir: 1 }));
   let heartsAdded = 0;
 
@@ -1278,13 +1320,14 @@ function loadLevel(index) {
       if (cell === "S") state.switches.push({ x: x + 0.5, y: y + 0.5, activated: false });
       if (cell === "B") state.bridges.push({ x, y });
       if (cell === "G") state.guardians.push({ x: x + 0.5, y: y + 0.5 });
+      if (cell === "Z") state.safeZones.push({ x: x + 0.5, y: y + 0.5, radius: 1.25 });
       if (cell === "D") state.door = { x, y };
       if (cell === "E") state.exit = { x: x + 0.5, y: y + 0.5 };
     });
   });
 
   state.totalSeeds = state.seeds.length;
-  if (index >= 4) {
+  if (index >= 4 && state.safeZones.length === 0) {
     const anchor = state.heartPickups[0] || state.switches[0] || state.key || state.seeds[0] || state.exit;
     if (anchor) state.safeZones.push({ x: anchor.x, y: anchor.y, radius: 1.25 });
   }
@@ -1295,13 +1338,11 @@ function loadLevel(index) {
   recentHitTimes = [];
   levelAssist = {};
   
-  els.mission.textContent = state.key
-    ? i18n[currentLang].keyLine
-    : level.missions[currentLang];
   els.level.textContent = `🌙 ${levelLabel(index)}`;
   state.player.score = 0;
   state.player2.score = 0;
   updateSeedsDisplay();
+  updateObjectiveText();
 
   // Show level intro title overlay (briefly)
   showToast(level.names[currentLang], 2.5);
@@ -1367,6 +1408,8 @@ function update(dt) {
   sparkle += dt;
   runTime += dt;
   levelTime += dt;
+  state.bridgeTimer = Math.max(0, state.bridgeTimer - dt);
+  updateObjectiveText();
   toastTimer = Math.max(0, toastTimer - dt);
   hintTimer = Math.max(0, hintTimer - dt);
   if (hintTimer === 0 && showHintPath) {
@@ -1473,10 +1516,16 @@ function allSwitchesActivated() {
   return state.switches.length === 0 || state.switches.every((sw) => sw.activated);
 }
 
+function bridgeOpen() {
+  const duration = levels[levelIndex]?.bridgeDuration || 0;
+  if (!duration) return allSwitchesActivated();
+  return state.bridgeTimer > 0;
+}
+
 function bridgeBlocks(x, y) {
   if (!state.bridges.some((bridge) => bridge.x === x && bridge.y === y)) return false;
   if (!levels[levelIndex]?.requiresSwitch) return false;
-  if (allSwitchesActivated()) return false;
+  if (bridgeOpen()) return false;
   return true;
 }
 
@@ -1515,9 +1564,11 @@ function moveShadows(dt) {
 
 function collectItems() {
   state.switches.forEach((sw) => {
-    if (sw.activated) return;
+    const timedBridge = Boolean(levels[levelIndex]?.bridgeDuration);
+    if (sw.activated && (!timedBridge || state.bridgeTimer > 1)) return;
     if (distance(sw, state.player) < 0.55 || (coopMode && distance(sw, state.player2) < 0.55)) {
       sw.activated = true;
+      if (levels[levelIndex]?.bridgeDuration) state.bridgeTimer = levels[levelIndex].bridgeDuration;
       showToast(i18n[currentLang].switchToast, 1.7);
       createParticles(sw.x * TILE, sw.y * TILE, "#7b5dc8");
       soundManager.playRefill();
@@ -1702,7 +1753,7 @@ function handleRestartAssist() {
 
 function checkExit() {
   const allSeeds = state.seeds.every((seed) => seed.collected);
-  const doorOpen = (!state.door || state.hasKey) && allSwitchesActivated();
+  const doorOpen = (!state.door || state.hasKey) && (state.bridges.length ? bridgeOpen() : allSwitchesActivated());
   const guardiansClear = state.guardians.length === 0 || allSeeds;
   
   const playerAtExit = distance(state.exit, state.player) < 0.62 || (coopMode && distance(state.exit, state.player2) < 0.62);
@@ -1937,11 +1988,12 @@ function drawSwitches() {
   state.switches.forEach((sw) => {
     const x = sw.x * TILE;
     const y = sw.y * TILE;
-    ctx.fillStyle = sw.activated ? "#ffe08a" : "#9ec7df";
+    const active = sw.activated && (!levels[levelIndex]?.bridgeDuration || bridgeOpen());
+    ctx.fillStyle = active ? "#ffe08a" : "#9ec7df";
     ctx.beginPath();
     ctx.arc(x, y, 13, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = sw.activated ? "#d89b25" : "#3478b9";
+    ctx.strokeStyle = active ? "#d89b25" : "#3478b9";
     ctx.lineWidth = 3;
     ctx.stroke();
   });
@@ -2019,7 +2071,7 @@ function drawExit() {
   const x = state.exit.x * TILE;
   const y = state.exit.y * TILE;
   const allSeeds = state.seeds.every((seed) => seed.collected);
-  const ready = allSeeds && (!state.key || state.hasKey) && allSwitchesActivated();
+  const ready = allSeeds && (!state.key || state.hasKey) && (state.bridges.length ? bridgeOpen() : allSwitchesActivated());
   
   ctx.fillStyle = ready ? `rgba(255, 215, 105, ${0.5 + Math.sin(sparkle * 5) * 0.2})` : "rgba(120, 132, 150, 0.28)";
   ctx.beginPath();
@@ -2035,7 +2087,7 @@ function drawExit() {
 function drawDoor() {
   if (!state.door) return;
   const lockedByKey = state.key && !state.hasKey;
-  const lockedBySwitch = !allSwitchesActivated();
+  const lockedBySwitch = state.bridges.length ? !bridgeOpen() : !allSwitchesActivated();
   if (!lockedByKey && !lockedBySwitch) return;
   const x = state.door.x * TILE;
   const y = state.door.y * TILE;
@@ -2247,7 +2299,7 @@ function drawHintPath() {
 
 function findHintTarget() {
   if (state.key && !state.hasKey) return state.key;
-  const inactiveSwitch = state.switches.find((sw) => !sw.activated);
+  const inactiveSwitch = state.switches.find((sw) => !sw.activated || (state.bridges.length && !bridgeOpen()));
   const hasLockedSeed = state.seeds.some((seed) => !seed.collected && seed.locked);
   if (inactiveSwitch && (hasLockedSeed || state.bridges.length)) return inactiveSwitch;
   let nearest = null;
@@ -2317,15 +2369,10 @@ if (els.magicSlow) els.magicSlow.addEventListener("click", () => {
 if (els.magicPath) els.magicPath.addEventListener("click", () => triggerPathHint(6));
 if (els.magicSkip) els.magicSkip.addEventListener("click", skipLevel);
 if (els.magicCozy) els.magicCozy.addEventListener("click", () => {
-  levelAssist.cozyAssist = true;
-  difficultyMode = "cozy";
-  cozyMode = true;
-  MAX_HEARTS = Math.max(MAX_HEARTS, difficultySettings.cozy.hearts);
-  hearts = Math.max(hearts, MAX_HEARTS);
-  writeSave({ difficulty: "cozy", cozyMode: true });
-  updateDifficultyUI();
-  updateHud();
-  showToast(i18n[currentLang].magicCozyToast, 1.7);
+  levelAssist.bridgeExtend = true;
+  state.bridgeTimer = Math.max(state.bridgeTimer, (levels[levelIndex]?.bridgeDuration || 8) + 5);
+  if (state.switches.length) state.switches.forEach((sw) => { sw.activated = true; });
+  showToast(i18n[currentLang].magicBridgeToast, 1.7);
 });
 
 els.muteBtn.addEventListener("click", () => {
