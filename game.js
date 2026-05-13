@@ -40,11 +40,17 @@ const els = {
   endStats: document.querySelector("#end-stats"),
   endFlowers: document.querySelector("#end-flowers"),
   endStickers: document.querySelector("#end-stickers"),
+  endBadge: document.querySelector("#end-badge"),
   playAgain: document.querySelector("#playAgainBtn"),
+  levelMap: document.querySelector("#levelMapBtn"),
   showStickers: document.querySelector("#showStickersBtn"),
+  endLang: document.querySelector("#endLangBtn"),
   stickerContainer: document.querySelector("#sticker-container"),
   levelSelector: document.querySelector("#level-selector"),
   starsDisplay: document.querySelector(".stars-display"),
+  modeCozy: document.querySelector("#modeCozyBtn"),
+  modeAdventure: document.querySelector("#modeAdventureBtn"),
+  modeChallenge: document.querySelector("#modeChallengeBtn"),
 };
 
 const TILE = 48;
@@ -65,9 +71,11 @@ let overlayAction = "start";
 // --- Focused Features ---
 let cozyMode = true;
 let showHintPath = false;
+let hintTimer = 0;
 let livesLostThisLevel = 0;
 let currentLang = "en"; // Default to English as requested
 let coopMode = false;
+let difficultyMode = "cozy";
 
 const i18n = {
     zh: {
@@ -109,11 +117,27 @@ const i18n = {
         retryCopy: "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？",
         endTitle: "月光花园再次闪耀！",
         endCopy: "Iris 和 Luna 小猫完成了所有冒险。",
+        endBadge: "最喜欢的章节：{name}",
+        totalStars: "总星星",
+        levelMapBtn: "关卡地图",
+        changeLanguageBtn: "切换语言",
         coopBtnOff: "☐ 双人合作：Iris + Luna",
         coopBtnOn: "☑ 双人合作：Iris + Luna",
         coopHelp: "Iris 小女孩和 Luna 小猫一起收集星种子，打开月光门。",
         flowersFound: "找到的月光花：{n} / {total}",
         stickersUnlocked: "解锁的贴纸：{n} / {total}",
+        flowerFound: "月光花：已找到",
+        flowerMissing: "月光花：还没找到",
+        chapter1: "第 1 章：月光花园基础",
+        chapter2: "第 2 章：星星迷宫",
+        chapter3: "第 3 章：梦月之境",
+        modeCozy: "温馨模式",
+        modeAdventure: "冒险模式",
+        modeChallenge: "挑战模式",
+        modeChallengeLocked: "挑战模式 🔒",
+        challengeLockedToast: "完成第 1 章后解锁挑战模式。",
+        switchToast: "月光开关亮起来了！",
+        hintReady: "月光指引亮起来了。",
         irisLabel: "Iris",
         lunaLabel: "Luna",
         selectLevel: "选择关卡",
@@ -160,11 +184,27 @@ const i18n = {
         retryCopy: "Try again, Iris is getting closer to the Moon Tree. Want to try Cozy Mode?",
         endTitle: "The Moon Garden is glowing again!",
         endCopy: "Iris and Luna the cat completed every adventure.",
+        endBadge: "Favorite chapter badge: {name}",
+        totalStars: "Total Stars",
+        levelMapBtn: "Level Map",
+        changeLanguageBtn: "Change Language",
         coopBtnOff: "☐ Two-player Co-op: Iris + Luna",
         coopBtnOn: "☑ Two-player Co-op: Iris + Luna",
         coopHelp: "Iris the girl and Luna the cat collect star seeds and open the moon gate together.",
         flowersFound: "Moon Flowers Found: {n} / {total}",
         stickersUnlocked: "Stickers Unlocked: {n} / {total}",
+        flowerFound: "Moon Flower: Found",
+        flowerMissing: "Moon Flower: Not found yet",
+        chapter1: "Chapter 1: Moon Garden Basics",
+        chapter2: "Chapter 2: Star Maze",
+        chapter3: "Chapter 3: Dream Moon",
+        modeCozy: "Cozy Mode",
+        modeAdventure: "Adventure",
+        modeChallenge: "Challenge",
+        modeChallengeLocked: "Challenge 🔒",
+        challengeLockedToast: "Complete Chapter 1 to unlock Challenge Mode.",
+        switchToast: "The moon switch is glowing!",
+        hintReady: "A moonlight hint is glowing.",
         irisLabel: "Iris",
         lunaLabel: "Luna",
         selectLevel: "Select Level",
@@ -174,7 +214,7 @@ const i18n = {
     }
 };
 
-const levels = [
+let levels = [
   {
     names: { zh: "第 1 关：唤醒沉睡的花朵", en: "Level 1: Wake the sleeping flowers" },
     missions: { zh: "收集所有星光种子，然后走进发光的月光门。本关没有敌人哦！", en: "Collect all star seeds and enter the glowing gate. No enemies here!" },
@@ -454,6 +494,409 @@ const levels = [
   }
 ];
 
+const chapterMeta = [
+  { start: 0, end: 5, key: "chapter1" },
+  { start: 6, end: 11, key: "chapter2" },
+  { start: 12, end: 17, key: "chapter3" },
+];
+
+const stickerNames = [
+  "Moon Cat", "Star Bunny", "Sleepy Owl", "Crystal Fox", "Glow Frog", "Tiny Dragon",
+  "Firefly Friend", "Moon Fox", "Cloud Whale", "Star Deer", "Dream Owl", "Garden Guardian",
+  "Comet Kitten", "Bridge Sprite", "Mirror Moth", "Storm Star", "Lost Flower", "Moon Crown",
+];
+
+function makeLevel(index, en, zh, missionEn, missionZh, map, shadows = [], options = {}) {
+  return {
+    chapter: Math.floor(index / 6),
+    names: { en: `Level ${index + 1}: ${en}`, zh: `第 ${index + 1} 关：${zh}` },
+    missions: { en: missionEn, zh: missionZh },
+    map,
+    shadows,
+    sticker: stickerNames[index],
+    requiresSwitch: options.requiresSwitch || false,
+    movingBridge: options.movingBridge || false,
+    fireflies: options.fireflies || false,
+    stormSeeds: options.stormSeeds || false,
+    guardian: options.guardian || false,
+  };
+}
+
+function createAdventureLevels() {
+  return [
+    makeLevel(0, "Wake the Sleeping Stars", "唤醒沉睡的星星",
+      "Learn to move, collect every star seed, and step into the moon gate.",
+      "学习移动，收集所有星光种子，然后走进月光门。",
+      [
+        "####################",
+        "#I..*.............F#",
+        "#..................#",
+        "#......*...........#",
+        "#..................#",
+        "#..........*.......#",
+        "#..................#",
+        "#....*.............#",
+        "#..................#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ]),
+    makeLevel(1, "Misty Pond", "迷雾池塘",
+      "Blue ponds slow Iris and Luna down. Cross them calmly.",
+      "蓝色池塘会让 Iris 和 Luna 变慢，慢慢穿过去。",
+      [
+        "####################",
+        "#I..*.......F......#",
+        "#..~~~~............#",
+        "#..~~~~....*.......#",
+        "#..................#",
+        "#......~~~~........#",
+        "#......~~~~..*.....#",
+        "#..................#",
+        "#....*.......~~~~..#",
+        "#............~~~~E.#",
+        "#..................#",
+        "####################",
+      ]),
+    makeLevel(2, "Dancing Shadow", "跳舞的阴影",
+      "A slow shadow dances back and forth. Watch its path.",
+      "一个慢慢移动的阴影来回跳舞，观察它的路线。",
+      [
+        "####################",
+        "#I..*.............F#",
+        "#..................#",
+        "#......*...........#",
+        "#..................#",
+        "#..........*.......#",
+        "#..................#",
+        "#....*.............#",
+        "#..................#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ],
+      [{ x: 10.5, y: 5.5, minX: 7.5, maxX: 14.5, speed: 0.9 }]),
+    makeLevel(3, "Hidden Heart", "隐藏爱心",
+      "Hearts gently refill lives. There is still time to explore.",
+      "爱心会温柔地恢复生命，可以放心探索。",
+      [
+        "####################",
+        "#I..*.........H...F#",
+        "#..####............#",
+        "#.....#...*........#",
+        "#.....#............#",
+        "#.....#......*.....#",
+        "#.....#............#",
+        "#..*..#............#",
+        "#.....#............#",
+        "#.....#.........E..#",
+        "#..................#",
+        "####################",
+      ],
+      [{ x: 8.5, y: 7.5, minY: 4.5, maxY: 9.5, speed: 0.9, axis: "y" }]),
+    makeLevel(4, "Moon Bridge", "月亮桥",
+      "Narrow paths and ponds make a gentle bridge challenge.",
+      "窄路和池塘组成温柔的月亮桥挑战。",
+      [
+        "####################",
+        "#I..*..#.......*..F#",
+        "#.....#..~~~~......#",
+        "#.....#..~~~~......#",
+        "#.....#............#",
+        "#..*..######..*....#",
+        "#............~~~~..#",
+        "#............~~~~..#",
+        "#....H.............#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 12.5, y: 5.5, minX: 9.5, maxX: 16.5, speed: 1.1 },
+        { x: 4.5, y: 8.5, minY: 5.5, maxY: 9.5, speed: 0.9, axis: "y" },
+      ]),
+    makeLevel(5, "First Moon Gate", "第一道月光门",
+      "A small milestone: seeds, ponds, shadows, key, and gate.",
+      "一个小小里程碑：星种子、池塘、阴影、钥匙和月光门。",
+      [
+        "####################",
+        "#I..*....#.....*..F#",
+        "#.####...#..~~~~...#",
+        "#....#...#..~~~~...#",
+        "#....#...#.........#",
+        "#.*..#...K.....D...#",
+        "#....#####.........#",
+        "#.........*........#",
+        "#..H........~~~~...#",
+        "#...........~~~~E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 5.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.0, axis: "y" },
+        { x: 14.5, y: 8.5, minX: 10.5, maxX: 17.5, speed: 1.0 },
+      ]),
+    makeLevel(6, "Twinkling Maze", "闪烁迷宫",
+      "A simple maze asks you to choose your path.",
+      "简单迷宫会让你练习选择路线。",
+      [
+        "####################",
+        "#I..#...*......#..F#",
+        "#...#..####....#...#",
+        "#...#.....#....#...#",
+        "#.*.#####.#.####...#",
+        "#.........#....*...#",
+        "#.#########........#",
+        "#.....*............#",
+        "#..#######..####...#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 11.5, y: 5.5, minX: 8.5, maxX: 15.5, speed: 1.1 },
+        { x: 3.5, y: 8.5, minY: 6.5, maxY: 9.5, speed: 1.0, axis: "y" },
+      ]),
+    makeLevel(7, "Moon Key", "月亮钥匙",
+      "Find the moon key first, then collect every star seed to open the gate.",
+      "先找到月亮钥匙，再收集所有星种子打开月光门。",
+      [
+        "####################",
+        "#I..*.....#.......F#",
+        "#.........#..K.....#",
+        "#..####...#........#",
+        "#.....#...#..D.....#",
+        "#.*...#............#",
+        "#.....#####........#",
+        "#..........*.......#",
+        "#..H...............#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ],
+      [{ x: 9.5, y: 7.5, minX: 6.5, maxX: 12.5, speed: 1.1 }]),
+    makeLevel(8, "Shadow Patrol", "阴影巡逻",
+      "Patrol shadows move on predictable paths.",
+      "巡逻阴影会沿着固定路线移动。",
+      [
+        "####################",
+        "#I..*..........*..F#",
+        "#..####............#",
+        "#........####......#",
+        "#..................#",
+        "#.*....~~~~....*...#",
+        "#......~~~~........#",
+        "#........####......#",
+        "#..H...............#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 6.5, y: 3.5, minX: 3.5, maxX: 10.5, speed: 1.3 },
+        { x: 14.5, y: 7.5, minX: 10.5, maxX: 17.5, speed: 1.3 },
+        { x: 9.5, y: 5.5, minY: 3.5, maxY: 8.5, speed: 1.0, axis: "y" },
+      ]),
+    makeLevel(9, "Glow Switches", "发光开关",
+      "Step on the moon switch to open the glowing bridge.",
+      "踩亮月光开关，打开发光的桥。",
+      [
+        "####################",
+        "#I..*.......B....EF#",
+        "#...........B......#",
+        "#..####.....B......#",
+        "#.....#.....B......#",
+        "#.*...#.....B..*...#",
+        "#.....#............#",
+        "#.....####.........#",
+        "#..S.....H.........#",
+        "#.............*....#",
+        "#..................#",
+        "####################",
+      ],
+      [{ x: 7.5, y: 8.5, minX: 4.5, maxX: 10.5, speed: 1.1 }],
+      { requiresSwitch: true }),
+    makeLevel(10, "Frozen Stars", "冰封星星",
+      "Some frozen stars wake up after the switch glows.",
+      "有些冰封星星要等开关亮起后才会苏醒。",
+      [
+        "####################",
+        "#I..*.......L....EF#",
+        "#.........~~~~.....#",
+        "#..####...~~~~.....#",
+        "#.....#............#",
+        "#.*...#.....L......#",
+        "#.....#............#",
+        "#.....####.........#",
+        "#..S.....H.........#",
+        "#.............*....#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 7.5, y: 4.5, minX: 4.5, maxX: 11.5, speed: 1.1 },
+        { x: 14.5, y: 7.5, minY: 5.5, maxY: 9.5, speed: 1.0, axis: "y" },
+      ],
+      { requiresSwitch: true }),
+    makeLevel(11, "Garden Guardian", "花园守护者",
+      "The gentle guardian moves aside when all star seeds are awake.",
+      "温柔的守护者会在星种子全部醒来后让开。",
+      [
+        "####################",
+        "#I..*.........*...F#",
+        "#..####............#",
+        "#........####......#",
+        "#..................#",
+        "#.*....~~~~....*...#",
+        "#......~~~~........#",
+        "#..........G.......#",
+        "#..H...............#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 6.5, y: 3.5, minX: 3.5, maxX: 10.5, speed: 1.2 },
+        { x: 14.5, y: 5.5, minY: 3.5, maxY: 8.5, speed: 1.1, axis: "y" },
+      ],
+      { guardian: true }),
+    makeLevel(12, "Firefly Trail", "萤火虫小路",
+      "Fireflies sparkle near the path toward your next objective.",
+      "萤火虫会在通往下一个目标的路上闪闪发光。",
+      [
+        "####################",
+        "#I..*.....#......F.#",
+        "#.........#........#",
+        "#..####...#..*.....#",
+        "#.....#...#........#",
+        "#.*...#...#....K.D.#",
+        "#.....#####........#",
+        "#..........*.......#",
+        "#..H...............#",
+        "#...............E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 6.5, y: 7.5, minX: 3.5, maxX: 10.5, speed: 1.2 },
+        { x: 13.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.0, axis: "y" },
+      ],
+      { fireflies: true }),
+    makeLevel(13, "Moving Moon Bridges", "移动月亮桥",
+      "Moon bridges softly shimmer. Wait for the safe moment.",
+      "月亮桥会轻轻闪烁，等安全的时机通过。",
+      [
+        "####################",
+        "#I..*.......B....EF#",
+        "#..~~~~.....B......#",
+        "#..~~~~.....B......#",
+        "#...........B......#",
+        "#.*...S.....B..*...#",
+        "#..................#",
+        "#.....####.........#",
+        "#.........H........#",
+        "#.............*....#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 5.5, y: 8.5, minY: 5.5, maxY: 9.5, speed: 1.1, axis: "y" },
+        { x: 15.5, y: 4.5, minX: 12.5, maxX: 17.5, speed: 1.2 },
+      ],
+      { requiresSwitch: true, movingBridge: true }),
+    makeLevel(14, "Mirror Garden", "镜子花园",
+      "A symmetric garden works well for solo play or co-op.",
+      "对称花园适合单人，也适合双人合作。",
+      [
+        "####################",
+        "#I..*....#....*..F.#",
+        "#..###...#...###...#",
+        "#........#.........#",
+        "#..*.....#.....*...#",
+        "#........K.........#",
+        "#..*.....D.....*...#",
+        "#........#.........#",
+        "#..###...#...###...#",
+        "#..H..........E....#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 5.5, y: 3.5, minY: 1.5, maxY: 8.5, speed: 1.2, axis: "y" },
+        { x: 14.5, y: 8.5, minY: 1.5, maxY: 8.5, speed: 1.2, axis: "y" },
+      ]),
+    makeLevel(15, "Star Storm", "星星风暴",
+      "Shimmering seeds drift softly in the stormy moonlight.",
+      "星星风暴里，星种子会轻轻闪动。",
+      [
+        "####################",
+        "#I..*..........*..F#",
+        "#..~~~~............#",
+        "#.........*........#",
+        "#....####..........#",
+        "#.*..#..K.....D....#",
+        "#....#.............#",
+        "#....####......*...#",
+        "#..H.......~~~~....#",
+        "#...........~~~~E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 4.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.4, axis: "y" },
+        { x: 12.5, y: 8.5, minX: 8.5, maxX: 17.5, speed: 1.4 },
+        { x: 16.5, y: 4.5, minY: 2.5, maxY: 8.5, speed: 1.1, axis: "y" },
+      ],
+      { stormSeeds: true }),
+    makeLevel(16, "The Lost Flower", "走失的花",
+      "A hidden moon flower is tucked away off the main path.",
+      "一朵月光花藏在主路之外的小角落。",
+      [
+        "####################",
+        "#I..*.....#.......F#",
+        "#.........#..#######",
+        "#..####...#........#",
+        "#.....#...#..*.....#",
+        "#.*...#...K.....D..#",
+        "#.....#####........#",
+        "#..........*.......#",
+        "#..H....~~~~.......#",
+        "#........~~~~...E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 6.5, y: 7.5, minX: 3.5, maxX: 10.5, speed: 1.3 },
+        { x: 15.5, y: 5.5, minY: 3.5, maxY: 9.5, speed: 1.2, axis: "y" },
+      ]),
+    makeLevel(17, "Final Moon Gate", "最终月光门",
+      "The final adventure combines seeds, pond, shadow, key, switch, heart, moon flower, and gate.",
+      "最后的冒险会结合星种子、池塘、阴影、钥匙、开关、爱心、月光花和月光门。",
+      [
+        "####################",
+        "#I..*....#....*..F.#",
+        "#..~~~~..#..~~~~...#",
+        "#..~~~~..#..~~~~...#",
+        "#....#...#....S....#",
+        "#.*..#...KBBBBBD...#",
+        "#....#####.........#",
+        "#..........*...G...#",
+        "#..H.......~~~~....#",
+        "#...........~~~~E..#",
+        "#..................#",
+        "####################",
+      ],
+      [
+        { x: 4.5, y: 3.5, minY: 1.5, maxY: 6.5, speed: 1.4, axis: "y" },
+        { x: 10.5, y: 7.5, minX: 7.5, maxX: 14.5, speed: 1.4 },
+        { x: 16.5, y: 5.5, minY: 3.5, maxY: 9.5, speed: 1.2, axis: "y" },
+      ],
+      { requiresSwitch: true, guardian: true }),
+  ];
+}
+
+levels = createAdventureLevels();
+
 const state = {
   player: { id: "p1", name: "Iris", x: 1.5, y: 1.5, radius: 15, speed: 4.1, score: 0, invincible: 0 },
   player2: { id: "p2", name: "Luna", x: 1.5, y: 1.5, radius: 15, speed: 4.1, score: 0, invincible: 0 },
@@ -466,11 +909,60 @@ const state = {
   puddles: [],
   heartPickups: [],
   flowers: [],
+  switches: [],
+  bridges: [],
+  guardians: [],
   door: null,
   totalSeeds: 0,
   particles: [],
   screenShake: 0,
 };
+
+const SAVE_KEY = "iris-moon-garden:v1";
+
+const defaultSave = {
+  version: 1,
+  unlockedLevel: 1,
+  bestTimes: {},
+  bestStars: {},
+  flowers: {},
+  stickers: {},
+  muted: true,
+  cozyMode: true,
+  difficulty: "cozy",
+};
+
+function readSave() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    if (parsed && parsed.version === 1) return { ...defaultSave, ...parsed };
+  } catch (error) {
+    console.warn("Could not read save data", error);
+  }
+  const legacyProgress = parseInt(localStorage.getItem("moonGardenProgress") || "0", 10);
+  return { ...defaultSave, unlockedLevel: Math.max(1, legacyProgress + 1) };
+}
+
+function writeSave(patch) {
+  const next = { ...readSave(), ...patch };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(next));
+  return next;
+}
+
+function challengeUnlocked() {
+  return readSave().unlockedLevel > 6;
+}
+
+const difficultySettings = {
+  cozy: { hearts: 5, shadowSpeed: 0.7, invincible: 2.0, heartLimit: Infinity },
+  adventure: { hearts: 3, shadowSpeed: 1, invincible: 1.4, heartLimit: Infinity },
+  challenge: { hearts: 3, shadowSpeed: 1.28, invincible: 1.0, heartLimit: 1 },
+};
+
+function activeDifficulty() {
+  if (difficultyMode === "challenge" && !challengeUnlocked()) return difficultySettings.cozy;
+  return difficultySettings[difficultyMode] || difficultySettings.cozy;
+}
 
 function tt(key, vars = {}) {
   const v = i18n[currentLang][key] ?? i18n.en[key] ?? "";
@@ -496,9 +988,15 @@ function clearEndOverlay() {
   if (els.endStats) els.endStats.textContent = "";
   if (els.endFlowers) els.endFlowers.textContent = "";
   if (els.endStickers) els.endStickers.textContent = "";
+  if (els.endBadge) els.endBadge.textContent = "";
   if (els.playAgain) els.playAgain.textContent = "";
+  if (els.levelMap) els.levelMap.textContent = "";
   if (els.showStickers) els.showStickers.textContent = "";
-  if (els.stickerContainer) els.stickerContainer.innerHTML = "";
+  if (els.endLang) els.endLang.textContent = "";
+  if (els.stickerContainer) {
+    els.stickerContainer.innerHTML = "";
+    els.stickerContainer.hidden = true;
+  }
 }
 
 function hideCompleteOverlay() {
@@ -519,7 +1017,7 @@ function levelCompletionStars() {
   let stars = 0;
   const allSeeds = state.seeds.every((s) => s.collected);
   if (allSeeds) stars++;
-  if (livesLostThisLevel === 0) stars++;
+  if (livesLostThisLevel <= 1) stars++;
   const flowerCollected = state.flowers.length > 0 && state.flowers.every((f) => f.collected);
   if (flowerCollected) stars++;
   return stars;
@@ -532,10 +1030,11 @@ function renderCompleteOverlayContent(stars = levelCompletionStars()) {
   if (els.starsDisplay) els.starsDisplay.textContent = "⭐".repeat(stars) + "☆".repeat(3 - stars);
   if (!els.completeStats) return;
   const collected = state.seeds.filter((s) => s.collected).length;
+  const flowerText = state.flowers.some((f) => f.collected) ? t.flowerFound : t.flowerMissing;
   if (coopMode) {
-    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
+    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}`;
   } else {
-    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
+    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.hits}: ${livesLostThisLevel} · ${t.time}: ${formatTime(levelTime)} · ${flowerText}`;
   }
 }
 
@@ -544,16 +1043,27 @@ function renderEndOverlayContent(stars = levelCompletionStars()) {
   const totalLevels = levels.length;
   if (els.endTitle) els.endTitle.textContent = t.endTitle;
   if (els.playAgain) els.playAgain.textContent = t.playAgainBtn;
+  if (els.levelMap) els.levelMap.textContent = t.levelMapBtn;
   if (els.showStickers) els.showStickers.textContent = t.stickerBookBtn;
+  if (els.endLang) els.endLang.textContent = t.changeLanguageBtn;
+  const save = readSave();
+  const totalStars = Object.values(save.bestStars || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+  const chapterScores = chapterMeta.map((chapter) => {
+    let score = 0;
+    for (let i = chapter.start; i <= chapter.end; i++) score += Number(save.bestStars[i + 1] || 0);
+    return score;
+  });
+  const bestChapter = chapterScores.indexOf(Math.max(...chapterScores));
   if (els.endStats) {
     if (coopMode) {
-      els.endStats.textContent = `⭐ ${stars}★ · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
+      els.endStats.textContent = `${t.totalStars}: ${totalStars} / ${levels.length * 3} · ⭐ ${stars}★ · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
     } else {
-      els.endStats.textContent = `⭐ ${stars}★ · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
+      els.endStats.textContent = `${t.totalStars}: ${totalStars} / ${levels.length * 3} · ⭐ ${stars}★ · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
     }
   }
   if (els.endFlowers) els.endFlowers.textContent = tt("flowersFound", { n: countFoundFlowers(), total: totalLevels });
   if (els.endStickers) els.endStickers.textContent = tt("stickersUnlocked", { n: countUnlockedStickers(), total: totalLevels });
+  if (els.endBadge) els.endBadge.textContent = tt("endBadge", { name: tt(chapterMeta[bestChapter]?.key || "chapter1") });
 }
 
 function switchLanguage(lang) {
@@ -578,6 +1088,7 @@ function switchLanguage(lang) {
     if (els.endOverlay && !els.endOverlay.hidden) renderEndOverlayContent();
     updateContinueButton();
     updateModeUI();
+    updateDifficultyUI();
     populateLevelSelector();
 
     if (running && levels[levelIndex]) {
@@ -601,15 +1112,34 @@ function updateModeUI() {
   if (els.hintText) els.hintText.textContent = coopMode ? t.hintCoop : t.hintSolo;
 }
 
+function updateDifficultyUI() {
+  const t = i18n[currentLang];
+  const items = [
+    [els.modeCozy, "cozy", t.modeCozy],
+    [els.modeAdventure, "adventure", t.modeAdventure],
+    [els.modeChallenge, "challenge", challengeUnlocked() ? t.modeChallenge : t.modeChallengeLocked],
+  ];
+  items.forEach(([button, mode, label]) => {
+    if (!button) return;
+    button.textContent = label;
+    const active = difficultyMode === mode;
+    button.setAttribute("aria-pressed", String(active));
+    button.disabled = mode === "challenge" && !challengeUnlocked();
+    button.style.background = active ? "#e8f6ef" : "#fff";
+    button.style.borderColor = active ? "#7bb99a" : "#ddd1c0";
+    button.style.opacity = button.disabled ? "0.55" : "1";
+  });
+}
+
 function updateContinueButton() {
   if (!els.continue) return;
   const t = i18n[currentLang];
-  const saved = parseInt(localStorage.getItem("moonGardenProgress") || "0", 10);
-  if (saved > 0 && saved < levels.length) {
+  const saved = readSave().unlockedLevel;
+  if (saved > 1 && saved <= levels.length) {
     els.continue.hidden = false;
     els.continue.removeAttribute("aria-hidden");
     els.continue.classList.remove("hidden");
-    els.continue.textContent = tt("continueFrom", { n: saved + 1 });
+    els.continue.textContent = tt("continueFrom", { n: saved });
   } else {
     els.continue.hidden = true;
     els.continue.setAttribute("aria-hidden", "true");
@@ -639,10 +1169,14 @@ function loadLevel(index) {
   state.puddles = [];
   state.heartPickups = [];
   state.flowers = [];
+  state.switches = [];
+  state.bridges = [];
+  state.guardians = [];
   state.key = null;
   state.hasKey = false;
   state.door = null;
   state.shadows = level.shadows.map((shadow) => ({ ...shadow, dir: 1 }));
+  let heartsAdded = 0;
 
   level.map.forEach((row, y) => {
     [...row].forEach((cell, x) => {
@@ -669,10 +1203,17 @@ function loadLevel(index) {
         }
       }
       if (cell === "*") state.seeds.push({ x: x + 0.5, y: y + 0.5, collected: false });
+      if (cell === "L") state.seeds.push({ x: x + 0.5, y: y + 0.5, collected: false, locked: true });
       if (cell === "K") state.key = { x: x + 0.5, y: y + 0.5, collected: false };
       if (cell === "~") state.puddles.push({ x, y });
-      if (cell === "H") state.heartPickups.push({ x: x + 0.5, y: y + 0.5, collected: false });
+      if (cell === "H" && heartsAdded < activeDifficulty().heartLimit) {
+        heartsAdded++;
+        state.heartPickups.push({ x: x + 0.5, y: y + 0.5, collected: false });
+      }
       if (cell === "F") state.flowers.push({ x: x + 0.5, y: y + 0.5, collected: false });
+      if (cell === "S") state.switches.push({ x: x + 0.5, y: y + 0.5, activated: false });
+      if (cell === "B") state.bridges.push({ x, y });
+      if (cell === "G") state.guardians.push({ x: x + 0.5, y: y + 0.5 });
       if (cell === "D") state.door = { x, y };
       if (cell === "E") state.exit = { x: x + 0.5, y: y + 0.5 };
     });
@@ -707,8 +1248,8 @@ function startGame(startIndex = 0) {
   }
 
   try {
-      cozyMode = true;
-      MAX_HEARTS = 5;
+      cozyMode = difficultyMode === "cozy";
+      MAX_HEARTS = activeDifficulty().hearts;
       hearts = MAX_HEARTS;
       
       levelIndex = startIndex;
@@ -756,6 +1297,11 @@ function update(dt) {
   runTime += dt;
   levelTime += dt;
   toastTimer = Math.max(0, toastTimer - dt);
+  hintTimer = Math.max(0, hintTimer - dt);
+  if (hintTimer === 0 && showHintPath) {
+    showHintPath = false;
+    els.help.textContent = i18n[currentLang].helpBtn;
+  }
   if (toastTimer === 0) els.toast.classList.add("hidden");
   state.player.invincible = Math.max(0, state.player.invincible - dt);
   if (coopMode) state.player2.invincible = Math.max(0, state.player2.invincible - dt);
@@ -836,7 +1382,12 @@ function collides(player, x, y) {
     const tx = Math.floor(px);
     const ty = Math.floor(py);
     if (isWall(tx, ty)) return true;
-    if (state.door && !state.hasKey && tx === state.door.x && ty === state.door.y) return true;
+    if (bridgeBlocks(tx, ty)) return true;
+    if (guardianBlocks(tx, ty)) return true;
+    if (state.door && tx === state.door.x && ty === state.door.y) {
+      if (state.key && !state.hasKey) return true;
+      if (!allSwitchesActivated()) return true;
+    }
     return false;
   });
 }
@@ -845,6 +1396,22 @@ function isWall(x, y) {
   const level = levels[levelIndex];
   if (!level || y < 0 || y >= level.map.length || x < 0 || x >= level.map[0].length) return true;
   return state.walls.some((wall) => wall.x === x && wall.y === y);
+}
+
+function allSwitchesActivated() {
+  return state.switches.length === 0 || state.switches.every((sw) => sw.activated);
+}
+
+function bridgeBlocks(x, y) {
+  if (!state.bridges.some((bridge) => bridge.x === x && bridge.y === y)) return false;
+  if (!levels[levelIndex]?.requiresSwitch) return false;
+  if (allSwitchesActivated()) return false;
+  return true;
+}
+
+function guardianBlocks(x, y) {
+  const allSeeds = state.seeds.every((seed) => seed.collected);
+  return !allSeeds && state.guardians.some((guardian) => Math.floor(guardian.x) === x && Math.floor(guardian.y) === y);
 }
 
 function currentSpeedMultiplier(player) {
@@ -859,8 +1426,7 @@ function moveShadows(dt) {
     const min = axis === "x" ? shadow.minX : shadow.minY;
     const max = axis === "x" ? shadow.maxX : shadow.maxY;
     
-    let speed = shadow.speed;
-    if (cozyMode) speed *= 0.7;
+    let speed = shadow.speed * activeDifficulty().shadowSpeed;
 
     shadow[axis] += shadow.dir * speed * dt;
     if (shadow[axis] > max) {
@@ -875,8 +1441,19 @@ function moveShadows(dt) {
 }
 
 function collectItems() {
+  state.switches.forEach((sw) => {
+    if (sw.activated) return;
+    if (distance(sw, state.player) < 0.55 || (coopMode && distance(sw, state.player2) < 0.55)) {
+      sw.activated = true;
+      showToast(i18n[currentLang].switchToast, 1.7);
+      createParticles(sw.x * TILE, sw.y * TILE, "#7b5dc8");
+      soundManager.playRefill();
+    }
+  });
+
   state.seeds.forEach((seed) => {
     if (!seed.collected) {
+      if (seed.locked && !allSwitchesActivated()) return;
       if (distance(seed, state.player) < 0.55) {
         seed.collected = true;
         soundManager.playCollect();
@@ -944,6 +1521,11 @@ function collectItems() {
     
     function unlockFlower() {
       const stickerName = levels[levelIndex].sticker;
+      const save = readSave();
+      writeSave({
+        flowers: { ...(save.flowers || {}), [levelIndex + 1]: true },
+        stickers: { ...(save.stickers || {}), [levelIndex + 1]: stickerName },
+      });
       localStorage.setItem("moonGardenSticker_" + levelIndex, stickerName);
       localStorage.setItem("moonGardenFlower_" + levelIndex, "1");
       showToast(`${i18n[currentLang].toastFlower} ⭐ ${stickerName}`, 2.4);
@@ -962,9 +1544,10 @@ function checkShadowHits() {
     if (hit) {
       hearts -= 1;
       livesLostThisLevel++;
-      state.player.invincible = 2.0;
+      state.player.invincible = activeDifficulty().invincible;
       state.screenShake = 0.3;
       soundManager.playHit();
+      if (hearts <= 0) restartCurrentLevelSoftly();
     }
   }
   
@@ -974,60 +1557,60 @@ function checkShadowHits() {
     if (hit2) {
       hearts -= 1;
       livesLostThisLevel++;
-      state.player2.invincible = 2.0;
+      state.player2.invincible = activeDifficulty().invincible;
       state.screenShake = 0.3;
       soundManager.playHit();
+      if (hearts <= 0) restartCurrentLevelSoftly();
     }
   }
 }
 
+function restartCurrentLevelSoftly() {
+  showToast(i18n[currentLang].toastGameOver, 1.4);
+  hearts = MAX_HEARTS;
+  loadLevel(levelIndex);
+}
+
 function checkExit() {
   const allSeeds = state.seeds.every((seed) => seed.collected);
-  const doorOpen = !state.door || state.hasKey;
+  const doorOpen = (!state.door || state.hasKey) && allSwitchesActivated();
+  const guardiansClear = state.guardians.length === 0 || allSeeds;
   
   const playerAtExit = distance(state.exit, state.player) < 0.62 || (coopMode && distance(state.exit, state.player2) < 0.62);
   
-  if (allSeeds && doorOpen && playerAtExit) {
+  if (allSeeds && doorOpen && guardiansClear && playerAtExit) {
     running = false;
     showLevelCompleteScreen();
   }
 }
 
 function countFoundFlowers() {
-  let n = 0;
+  const save = readSave();
+  let n = Object.values(save.flowers || {}).filter(Boolean).length;
   for (let i = 0; i < levels.length; i++) {
-    if (localStorage.getItem("moonGardenFlower_" + i)) n++;
+    if (localStorage.getItem("moonGardenFlower_" + i) && !save.flowers?.[i + 1]) n++;
   }
   return n;
 }
 function countUnlockedStickers() {
-  let n = 0;
+  const save = readSave();
+  let n = Object.values(save.stickers || {}).filter(Boolean).length;
   for (let i = 0; i < levels.length; i++) {
-    if (localStorage.getItem("moonGardenSticker_" + i)) n++;
+    if (localStorage.getItem("moonGardenSticker_" + i) && !save.stickers?.[i + 1]) n++;
   }
   return n;
 }
 
 function showLevelCompleteScreen() {
     const stars = levelCompletionStars();
-    localStorage.setItem("moonGardenProgress", levelIndex + 1);
+    recordLevelResult(stars);
 
     if (levelIndex === levels.length - 1) {
         renderEndOverlayContent(stars);
 
         if (els.stickerContainer) {
           els.stickerContainer.innerHTML = "";
-          levels.forEach((lvl, idx) => {
-            const unlocked = localStorage.getItem("moonGardenSticker_" + idx);
-            const stickerEl = document.createElement("div");
-            stickerEl.className = "pill";
-            stickerEl.style.background = unlocked ? "#e0aaff" : "#eee";
-            stickerEl.style.color = unlocked ? "#fff" : "#999";
-            stickerEl.style.filter = unlocked ? "none" : "grayscale(1)";
-            stickerEl.textContent = unlocked ? `⭐ ${lvl.sticker}` : "🌑";
-            stickerEl.title = unlocked ? lvl.sticker : "???";
-            els.stickerContainer.appendChild(stickerEl);
-          });
+          els.stickerContainer.hidden = true;
         }
 
         setHidden(els.endOverlay, false);
@@ -1038,6 +1621,27 @@ function showLevelCompleteScreen() {
     renderCompleteOverlayContent(stars);
     setHidden(els.completeOverlay, false);
     soundManager.playWin();
+}
+
+function recordLevelResult(stars) {
+  const save = readSave();
+  const levelNumber = levelIndex + 1;
+  const bestStars = { ...(save.bestStars || {}) };
+  const bestTimes = { ...(save.bestTimes || {}) };
+  const flowers = { ...(save.flowers || {}) };
+  const stickers = { ...(save.stickers || {}) };
+  bestStars[levelNumber] = Math.max(Number(bestStars[levelNumber] || 0), stars);
+  const wholeTime = Math.max(1, Math.floor(levelTime));
+  bestTimes[levelNumber] = bestTimes[levelNumber] ? Math.min(Number(bestTimes[levelNumber]), wholeTime) : wholeTime;
+  if (state.flowers.some((flower) => flower.collected)) {
+    flowers[levelNumber] = true;
+    stickers[levelNumber] = levels[levelIndex].sticker;
+  }
+  const unlockedLevel = Math.min(levels.length, Math.max(save.unlockedLevel || 1, levelIndex + 2));
+  writeSave({ unlockedLevel, bestStars, bestTimes, flowers, stickers, difficulty: difficultyMode, cozyMode: difficultyMode === "cozy" });
+  localStorage.setItem("moonGardenProgress", String(unlockedLevel - 1));
+  updateDifficultyUI();
+  populateLevelSelector();
 }
 
 els.nextLevel.addEventListener("click", () => {
@@ -1152,12 +1756,16 @@ function draw() {
   }
   
   drawGarden();
+  drawBridges();
   drawExit();
   drawDoor();
+  drawSwitches();
   drawSeeds();
   drawKey();
   drawHeartPickups();
   drawFlowers();
+  drawGuardians();
+  drawFireflies();
   drawShadows();
   drawPlayer();
   if (coopMode) drawPlayer2();
@@ -1181,6 +1789,62 @@ function drawFlowers() {
     ctx.arc(x, y, 4, 0, Math.PI * 2);
     ctx.fill();
   });
+}
+
+function drawSwitches() {
+  state.switches.forEach((sw) => {
+    const x = sw.x * TILE;
+    const y = sw.y * TILE;
+    ctx.fillStyle = sw.activated ? "#ffe08a" : "#9ec7df";
+    ctx.beginPath();
+    ctx.arc(x, y, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = sw.activated ? "#d89b25" : "#3478b9";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  });
+}
+
+function drawBridges() {
+  state.bridges.forEach((bridge) => {
+    const active = !bridgeBlocks(bridge.x, bridge.y);
+    ctx.fillStyle = active ? "rgba(255, 232, 148, 0.66)" : "rgba(123, 93, 200, 0.42)";
+    ctx.fillRect(bridge.x * TILE + 4, bridge.y * TILE + 4, TILE - 8, TILE - 8);
+  });
+}
+
+function drawGuardians() {
+  const allSeeds = state.seeds.every((seed) => seed.collected);
+  state.guardians.forEach((guardian) => {
+    const x = guardian.x * TILE;
+    const y = guardian.y * TILE;
+    ctx.globalAlpha = allSeeds ? 0.35 : 1;
+    ctx.fillStyle = "#7b5dc8";
+    ctx.beginPath();
+    ctx.arc(x, y, 17, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff8c8";
+    ctx.beginPath();
+    ctx.arc(x - 5, y - 4, 3, 0, Math.PI * 2);
+    ctx.arc(x + 5, y - 4, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+}
+
+function drawFireflies() {
+  if (!levels[levelIndex]?.fireflies) return;
+  const target = findHintTarget() || state.exit;
+  for (let i = 0; i < 7; i++) {
+    const t = (i + 1) / 8;
+    const wobble = Math.sin(sparkle * 3 + i) * 7;
+    const x = (state.player.x + (target.x - state.player.x) * t) * TILE + wobble;
+    const y = (state.player.y + (target.y - state.player.y) * t) * TILE + Math.cos(sparkle * 2 + i) * 6;
+    ctx.fillStyle = `rgba(255, 232, 120, ${0.35 + 0.28 * Math.sin(sparkle * 5 + i)})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawGarden() {
@@ -1213,20 +1877,24 @@ function drawExit() {
   const x = state.exit.x * TILE;
   const y = state.exit.y * TILE;
   const allSeeds = state.seeds.every((seed) => seed.collected);
+  const ready = allSeeds && (!state.key || state.hasKey) && allSwitchesActivated();
   
-  ctx.fillStyle = allSeeds ? `rgba(255, 215, 105, ${0.5 + Math.sin(sparkle * 5) * 0.2})` : "rgba(120, 132, 150, 0.28)";
+  ctx.fillStyle = ready ? `rgba(255, 215, 105, ${0.5 + Math.sin(sparkle * 5) * 0.2})` : "rgba(120, 132, 150, 0.28)";
   ctx.beginPath();
   ctx.arc(x, y, 24, 0, Math.PI * 2);
   ctx.fill();
   
-  ctx.fillStyle = allSeeds ? "#fff8c8" : "rgba(255, 255, 255, 0.56)";
+  ctx.fillStyle = ready ? "#fff8c8" : "rgba(255, 255, 255, 0.56)";
   ctx.beginPath();
   ctx.arc(x, y, 11, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawDoor() {
-  if (!state.door || state.hasKey) return;
+  if (!state.door) return;
+  const lockedByKey = state.key && !state.hasKey;
+  const lockedBySwitch = !allSwitchesActivated();
+  if (!lockedByKey && !lockedBySwitch) return;
   const x = state.door.x * TILE;
   const y = state.door.y * TILE;
   ctx.fillStyle = "#7b5dc8";
@@ -1237,9 +1905,10 @@ function drawSeeds() {
   state.seeds.forEach((seed) => {
     if (seed.collected) return;
     const x = seed.x * TILE;
-    const y = seed.y * TILE + Math.sin(sparkle * 4 + seed.x) * 3;
+    const drift = levels[levelIndex]?.stormSeeds ? Math.sin(sparkle * 2 + seed.x) * 5 : 0;
+    const y = seed.y * TILE + Math.sin(sparkle * 4 + seed.x) * 3 + drift;
     
-    ctx.fillStyle = "#f2b83d";
+    ctx.fillStyle = seed.locked && !allSwitchesActivated() ? "#b8d4e8" : "#f2b83d";
     ctx.beginPath();
     ctx.arc(x, y, 8, 0, Math.PI * 2);
     ctx.fill();
@@ -1417,27 +2086,41 @@ function drawPlayer2() {
 }
 
 function drawHintPath() {
-    if (!showHintPath) return;
-    
-    let nearest = null;
-    let minDist = Infinity;
-    state.seeds.forEach(seed => {
-        if (!seed.collected) {
-            const d = distance(seed, state.player);
-            if (d < minDist) { minDist = d; nearest = seed; }
-        }
-    });
-    
-    if (nearest) {
-        ctx.strokeStyle = "rgba(255, 215, 105, 0.5)";
-        ctx.lineWidth = 4;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(state.player.x * TILE, state.player.y * TILE);
-        ctx.lineTo(nearest.x * TILE, nearest.y * TILE);
-        ctx.stroke();
-        ctx.setLineDash([]);
+    if (!showHintPath || hintTimer <= 0) return;
+    const target = findHintTarget();
+    if (!target) return;
+    ctx.strokeStyle = "rgba(255, 215, 105, 0.58)";
+    ctx.lineWidth = 5;
+    ctx.setLineDash([5, 8]);
+    ctx.beginPath();
+    ctx.moveTo(state.player.x * TILE, state.player.y * TILE);
+    ctx.lineTo(target.x * TILE, target.y * TILE);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(255, 248, 200, 0.85)";
+    ctx.beginPath();
+    ctx.arc(target.x * TILE, target.y * TILE, 15 + Math.sin(sparkle * 8) * 3, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function findHintTarget() {
+  if (state.key && !state.hasKey) return state.key;
+  const inactiveSwitch = state.switches.find((sw) => !sw.activated);
+  const hasLockedSeed = state.seeds.some((seed) => !seed.collected && seed.locked);
+  if (inactiveSwitch && (hasLockedSeed || state.bridges.length)) return inactiveSwitch;
+  let nearest = null;
+  let minDist = Infinity;
+  state.seeds.forEach((seed) => {
+    if (!seed.collected && !(seed.locked && !allSwitchesActivated())) {
+      const d = distance(seed, state.player);
+      if (d < minDist) {
+        minDist = d;
+        nearest = seed;
+      }
     }
+  });
+  if (nearest) return nearest;
+  return state.exit;
 }
 
 // --- Event Listeners ---
@@ -1468,8 +2151,7 @@ els.start.addEventListener("click", () => {
 });
 
 els.restart.addEventListener("click", () => {
-    levelIndex = 0;
-    startGame();
+    startGame(levelIndex);
 });
 
 els.pause.addEventListener("click", () => {
@@ -1479,12 +2161,15 @@ els.pause.addEventListener("click", () => {
 });
 
 els.help.addEventListener("click", () => {
-    showHintPath = !showHintPath;
-    els.help.textContent = showHintPath ? i18n[currentLang].helpBtnActive : i18n[currentLang].helpBtn;
+    showHintPath = true;
+    hintTimer = 3;
+    showToast(i18n[currentLang].hintReady, 1.2);
+    els.help.textContent = i18n[currentLang].helpBtnActive;
 });
 
 els.muteBtn.addEventListener("click", () => {
     const muted = soundManager.toggleMute();
+    writeSave({ muted });
     els.muteBtn.textContent = muted ? "🔇" : "🔊";
 });
 
@@ -1502,8 +2187,8 @@ document.querySelectorAll(".pad button").forEach((button) => {
 });
 
 els.continue.addEventListener("click", () => {
-    const progress = parseInt(localStorage.getItem("moonGardenProgress") || "0", 10);
-    if (progress > 0 && progress < levels.length) startGame(progress);
+    const progress = readSave().unlockedLevel;
+    if (progress > 1 && progress <= levels.length) startGame(progress - 1);
 });
 
 document.querySelector("#playAgainBtn").addEventListener("click", () => {
@@ -1514,10 +2199,60 @@ document.querySelector("#playAgainBtn").addEventListener("click", () => {
 });
 
 document.querySelector("#showStickersBtn").addEventListener("click", () => {
-    if (els.stickerContainer) {
-      els.stickerContainer.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    renderStickerBook();
+    if (els.stickerContainer) els.stickerContainer.scrollIntoView({ behavior: "smooth", block: "center" });
 });
+
+if (els.levelMap) {
+  els.levelMap.addEventListener("click", () => {
+    hideEndOverlay();
+    running = false;
+    els.overlay.classList.remove("hidden");
+    updateContinueButton();
+    populateLevelSelector();
+  });
+}
+
+if (els.endLang) els.endLang.addEventListener("click", () => switchLanguage(currentLang === "zh" ? "en" : "zh"));
+
+function setDifficulty(mode) {
+  if (mode === "challenge" && !challengeUnlocked()) {
+    showToast(i18n[currentLang].challengeLockedToast, 2);
+    return;
+  }
+  difficultyMode = mode;
+  cozyMode = mode === "cozy";
+  writeSave({ difficulty: mode, cozyMode });
+  updateDifficultyUI();
+}
+
+if (els.modeCozy) els.modeCozy.addEventListener("click", () => setDifficulty("cozy"));
+if (els.modeAdventure) els.modeAdventure.addEventListener("click", () => setDifficulty("adventure"));
+if (els.modeChallenge) els.modeChallenge.addEventListener("click", () => setDifficulty("challenge"));
+
+function renderStickerBook() {
+  if (!els.stickerContainer) return;
+  els.stickerContainer.innerHTML = "";
+  els.stickerContainer.hidden = false;
+  const save = readSave();
+  const progress = document.createElement("div");
+  progress.className = "pill";
+  progress.style.background = "#fff";
+  progress.style.color = "#243044";
+  progress.textContent = tt("flowersFound", { n: countFoundFlowers(), total: levels.length });
+  els.stickerContainer.appendChild(progress);
+  levels.forEach((lvl, idx) => {
+    const unlocked = save.stickers?.[idx + 1] || localStorage.getItem("moonGardenSticker_" + idx);
+    const stickerEl = document.createElement("div");
+    stickerEl.className = "pill";
+    stickerEl.style.background = unlocked ? "#e0aaff" : "#eee";
+    stickerEl.style.color = unlocked ? "#fff" : "#999";
+    stickerEl.style.filter = unlocked ? "none" : "grayscale(1)";
+    stickerEl.textContent = unlocked ? `⭐ ${lvl.sticker}` : "🌑";
+    stickerEl.title = unlocked ? lvl.sticker : "???";
+    els.stickerContainer.appendChild(stickerEl);
+  });
+}
 
 document.querySelector("#coopModeBtn").addEventListener("click", () => {
   coopMode = !coopMode;
@@ -1542,30 +2277,76 @@ function populateLevelSelector() {
     const selector = els.levelSelector;
     if (!selector) return;
     selector.innerHTML = "";
-    levels.forEach((lvl, idx) => {
+    const save = readSave();
+    selector.style.display = "grid";
+    selector.style.gridTemplateColumns = "1fr";
+    selector.style.gap = "12px";
+    selector.style.maxWidth = "560px";
+    chapterMeta.forEach((chapter) => {
+      const group = document.createElement("div");
+      group.style.border = "1px solid #ddd1c0";
+      group.style.borderRadius = "8px";
+      group.style.padding = "10px";
+      group.style.background = "rgba(255,255,255,0.72)";
+
+      const heading = document.createElement("div");
+      heading.textContent = tt(chapter.key);
+      heading.style.fontWeight = "900";
+      heading.style.color = "#243044";
+      heading.style.marginBottom = "8px";
+      group.appendChild(heading);
+
+      const grid = document.createElement("div");
+      grid.style.display = "grid";
+      grid.style.gridTemplateColumns = "repeat(6, minmax(0, 1fr))";
+      grid.style.gap = "8px";
+
+      for (let idx = chapter.start; idx <= chapter.end; idx++) {
+        const lvl = levels[idx];
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.textContent = idx + 1;
+        const levelNumber = idx + 1;
+        const locked = levelNumber > (save.unlockedLevel || 1);
+        const stars = Number(save.bestStars?.[levelNumber] || 0);
+        const flower = save.flowers?.[levelNumber] || localStorage.getItem("moonGardenFlower_" + idx);
+        btn.innerHTML = locked
+          ? `<strong>${levelNumber}</strong><span>🔒</span>`
+          : `<strong>${levelNumber}</strong><span>${"⭐".repeat(stars)}${"☆".repeat(3 - stars)}</span><span>${flower ? "🌸" : "◇"}</span>`;
         btn.style.cursor = "pointer";
-        btn.style.background = "#fff";
+        btn.style.background = locked ? "#eee" : "#fff";
         btn.style.border = "1px solid #ddd1c0";
         btn.style.color = "#243044";
-        btn.style.borderRadius = "50%";
-        btn.style.width = "40px";
-        btn.style.height = "40px";
+        btn.style.borderRadius = "8px";
+        btn.style.minHeight = "56px";
+        btn.style.padding = "4px";
         btn.style.display = "grid";
         btn.style.placeItems = "center";
+        btn.style.gap = "1px";
         btn.style.fontWeight = "bold";
+        btn.style.fontSize = "0.72rem";
         btn.style.boxShadow = "none";
         btn.title = lvl.names[currentLang];
-        btn.addEventListener("click", () => startGame(idx));
-        selector.appendChild(btn);
+        btn.disabled = locked;
+        btn.style.opacity = locked ? "0.58" : "1";
+        btn.addEventListener("click", () => {
+          if (!locked) startGame(idx);
+        });
+        grid.appendChild(btn);
+      }
+      group.appendChild(grid);
+      selector.appendChild(group);
     });
 }
 
 // Init
 hideCompleteOverlay();
 hideEndOverlay();
+const initialSave = readSave();
+difficultyMode = initialSave.difficulty || (initialSave.cozyMode ? "cozy" : "adventure");
+if (difficultyMode === "challenge" && !challengeUnlocked()) difficultyMode = "cozy";
+cozyMode = difficultyMode === "cozy";
+soundManager.muted = initialSave.muted !== undefined ? initialSave.muted : true;
+if (els.muteBtn) els.muteBtn.textContent = soundManager.muted ? "🔇" : "🔊";
 switchLanguage("en");
 updateContinueButton();
 populateLevelSelector();
