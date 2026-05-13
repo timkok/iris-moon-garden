@@ -2,6 +2,7 @@ const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 
 const els = {
+  surface: document.querySelector(".game-surface"),
   mission: document.querySelector("#missionText"),
   level: document.querySelector("#levelStat"),
   seeds: document.querySelector("#seedStat"),
@@ -33,6 +34,7 @@ const els = {
   storyTitle: document.querySelector("#story-title"),
   coopBtn: document.querySelector("#coopModeBtn"),
   coopHelp: document.querySelector("#coopHelp"),
+  selectLevelLabel: document.querySelector("#selectLevelLabel"),
   endOverlay: document.querySelector("#end-overlay"),
   endTitle: document.querySelector("#end-title"),
   endStats: document.querySelector("#end-stats"),
@@ -107,8 +109,8 @@ const i18n = {
         retryCopy: "再试一次，Iris 离月亮树更近啦。要不要用温馨模式试一下？",
         endTitle: "月光花园再次闪耀！",
         endCopy: "你和小伙伴完成了所有冒险。",
-        coopBtnOff: "👯 双人合作：Iris + Luna（已关闭）",
-        coopBtnOn: "👯 双人合作：Iris + Luna（已开启）",
+        coopBtnOff: "☐ 双人合作：Iris + Luna",
+        coopBtnOn: "☑ 双人合作：Iris + Luna",
         coopHelp: "两位小伙伴一起收集星种子，一起打开月光门。",
         flowersFound: "找到的月光花：{n} / {total}",
         stickersUnlocked: "解锁的贴纸：{n} / {total}",
@@ -158,8 +160,8 @@ const i18n = {
         retryCopy: "Try again, Iris is getting closer to the Moon Tree. Want to try Cozy Mode?",
         endTitle: "The Moon Garden is glowing again!",
         endCopy: "You and your friend completed every adventure.",
-        coopBtnOff: "👯 Two-player Co-op: Iris + Luna (OFF)",
-        coopBtnOn: "👯 Two-player Co-op: Iris + Luna (ON)",
+        coopBtnOff: "☐ Two-player Co-op: Iris + Luna",
+        coopBtnOn: "☑ Two-player Co-op: Iris + Luna",
         coopHelp: "Both players help collect star seeds and open the moon gate together.",
         flowersFound: "Moon Flowers Found: {n} / {total}",
         stickersUnlocked: "Stickers Unlocked: {n} / {total}",
@@ -475,6 +477,85 @@ function tt(key, vars = {}) {
   return v.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : ""));
 }
 
+function setHidden(el, hidden) {
+  if (!el) return;
+  el.classList.toggle("hidden", hidden);
+  el.hidden = hidden;
+  el.setAttribute("aria-hidden", hidden ? "true" : "false");
+}
+
+function clearCompleteOverlay() {
+  if (els.completeTitle) els.completeTitle.textContent = "";
+  if (els.starsDisplay) els.starsDisplay.textContent = "";
+  if (els.completeStats) els.completeStats.textContent = "";
+  if (els.nextLevel) els.nextLevel.textContent = "";
+}
+
+function clearEndOverlay() {
+  if (els.endTitle) els.endTitle.textContent = "";
+  if (els.endStats) els.endStats.textContent = "";
+  if (els.endFlowers) els.endFlowers.textContent = "";
+  if (els.endStickers) els.endStickers.textContent = "";
+  if (els.playAgain) els.playAgain.textContent = "";
+  if (els.showStickers) els.showStickers.textContent = "";
+  if (els.stickerContainer) els.stickerContainer.innerHTML = "";
+}
+
+function hideCompleteOverlay() {
+  setHidden(els.completeOverlay, true);
+  clearCompleteOverlay();
+}
+
+function hideEndOverlay() {
+  setHidden(els.endOverlay, true);
+  clearEndOverlay();
+}
+
+function levelLabel(index) {
+  return currentLang === "zh" ? `第 ${index + 1} 关` : `Level ${index + 1}`;
+}
+
+function levelCompletionStars() {
+  let stars = 0;
+  const allSeeds = state.seeds.every((s) => s.collected);
+  if (allSeeds) stars++;
+  if (livesLostThisLevel === 0) stars++;
+  const flowerCollected = state.flowers.length > 0 && state.flowers.every((f) => f.collected);
+  if (flowerCollected) stars++;
+  return stars;
+}
+
+function renderCompleteOverlayContent(stars = levelCompletionStars()) {
+  const t = i18n[currentLang];
+  if (els.completeTitle) els.completeTitle.textContent = t.completeTitle;
+  if (els.nextLevel) els.nextLevel.textContent = t.nextLevelBtn;
+  if (els.starsDisplay) els.starsDisplay.textContent = "⭐".repeat(stars) + "☆".repeat(3 - stars);
+  if (!els.completeStats) return;
+  const collected = state.seeds.filter((s) => s.collected).length;
+  if (coopMode) {
+    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
+  } else {
+    els.completeStats.textContent = `${t.seeds}: ${collected}/${state.totalSeeds} · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
+  }
+}
+
+function renderEndOverlayContent(stars = levelCompletionStars()) {
+  const t = i18n[currentLang];
+  const totalLevels = levels.length;
+  if (els.endTitle) els.endTitle.textContent = t.endTitle;
+  if (els.playAgain) els.playAgain.textContent = t.playAgainBtn;
+  if (els.showStickers) els.showStickers.textContent = t.stickerBookBtn;
+  if (els.endStats) {
+    if (coopMode) {
+      els.endStats.textContent = `⭐ ${stars}★ · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
+    } else {
+      els.endStats.textContent = `⭐ ${stars}★ · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
+    }
+  }
+  if (els.endFlowers) els.endFlowers.textContent = tt("flowersFound", { n: countFoundFlowers(), total: totalLevels });
+  if (els.endStickers) els.endStickers.textContent = tt("stickersUnlocked", { n: countUnlockedStickers(), total: totalLevels });
+}
+
 function switchLanguage(lang) {
     currentLang = lang;
     els.langBtn.textContent = lang === "zh" ? "English" : "中文";
@@ -483,26 +564,27 @@ function switchLanguage(lang) {
 
     const t = i18n[lang];
     els.hudTitle.textContent = t.title;
+    if (els.surface) els.surface.setAttribute("aria-label", t.title);
     if (els.storyTitle) els.storyTitle.textContent = t.storyTitle;
     els.overlayCopy.textContent = t.intro;
     els.start.textContent = t.startBtn;
     els.restart.textContent = t.restartBtn;
     els.pause.textContent = paused ? t.pauseBtnActive : t.pauseBtn;
     els.help.textContent = showHintPath ? t.helpBtnActive : t.helpBtn;
-    els.completeTitle.textContent = t.completeTitle;
-    els.nextLevel.textContent = t.nextLevelBtn;
-    if (els.endTitle) els.endTitle.textContent = t.endTitle;
-    if (els.playAgain) els.playAgain.textContent = t.playAgainBtn;
-    if (els.showStickers) els.showStickers.textContent = t.stickerBookBtn;
     if (els.coopHelp) els.coopHelp.textContent = t.coopHelp;
+    if (els.selectLevelLabel) els.selectLevelLabel.textContent = `${t.selectLevel}:`;
+    document.title = t.title;
+    if (els.completeOverlay && !els.completeOverlay.hidden) renderCompleteOverlayContent();
+    if (els.endOverlay && !els.endOverlay.hidden) renderEndOverlayContent();
     updateContinueButton();
     updateModeUI();
     populateLevelSelector();
 
     if (running && levels[levelIndex]) {
-        els.level.textContent = `🌙 ${levels[levelIndex].names[lang]}`;
-        els.mission.textContent = levels[levelIndex].missions[lang];
+        els.level.textContent = `🌙 ${levelLabel(levelIndex)}`;
+        els.mission.textContent = state.key && !state.hasKey ? t.keyLine : levels[levelIndex].missions[lang];
         updateSeedsDisplay();
+        updateHud();
     } else {
         els.mission.textContent = "";
     }
@@ -543,7 +625,7 @@ function updateSeedsDisplay() {
     return;
   }
   if (coopMode) {
-    els.seeds.textContent = `⭐ ${t.seeds}: ${collectedCount} / ${state.totalSeeds} · ${t.irisLabel} ${state.player.score} · ${t.lunaLabel} ${state.player2.score}`;
+    els.seeds.textContent = `⭐ ${t.seeds}: ${collectedCount} / ${state.totalSeeds} · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score}`;
   } else {
     els.seeds.textContent = `⭐ ${t.seeds}: ${collectedCount} / ${state.totalSeeds}`;
   }
@@ -604,7 +686,7 @@ function loadLevel(index) {
   els.mission.textContent = state.key
     ? i18n[currentLang].keyLine
     : level.missions[currentLang];
-  els.level.textContent = `🌙 ${level.names[currentLang]}`;
+  els.level.textContent = `🌙 ${levelLabel(index)}`;
   state.player.score = 0;
   state.player2.score = 0;
   updateSeedsDisplay();
@@ -643,6 +725,9 @@ function startGame(startIndex = 0) {
       els.hud.setAttribute("aria-hidden", "false");
       els.progressBar.classList.remove("hidden");
       els.progressBar.hidden = false;
+      els.progressBar.setAttribute("aria-hidden", "false");
+      hideCompleteOverlay();
+      hideEndOverlay();
 
       state.player.score = 0;
       state.player2.score = 0;
@@ -924,28 +1009,11 @@ function countUnlockedStickers() {
 }
 
 function showLevelCompleteScreen() {
-    let stars = 0;
-    const allSeeds = state.seeds.every(s => s.collected);
-    if (allSeeds) stars++;
-    if (livesLostThisLevel === 0) stars++;
-    const flowerCollected = state.flowers.length > 0 && state.flowers.every(f => f.collected);
-    if (flowerCollected) stars++;
-
-    const starsStr = "⭐".repeat(stars) + "☆".repeat(3 - stars);
-    const t = i18n[currentLang];
+    const stars = levelCompletionStars();
     localStorage.setItem("moonGardenProgress", levelIndex + 1);
 
     if (levelIndex === levels.length - 1) {
-        const totalLevels = levels.length;
-        if (els.endStats) {
-          if (coopMode) {
-            els.endStats.textContent = `⭐ ${stars}★ · ${t.irisLabel}: ${state.player.score} · ${t.lunaLabel}: ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
-          } else {
-            els.endStats.textContent = `⭐ ${stars}★ · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
-          }
-        }
-        if (els.endFlowers) els.endFlowers.textContent = tt("flowersFound", { n: countFoundFlowers(), total: totalLevels });
-        if (els.endStickers) els.endStickers.textContent = tt("stickersUnlocked", { n: countUnlockedStickers(), total: totalLevels });
+        renderEndOverlayContent(stars);
 
         if (els.stickerContainer) {
           els.stickerContainer.innerHTML = "";
@@ -962,31 +1030,18 @@ function showLevelCompleteScreen() {
           });
         }
 
-        els.endOverlay.classList.remove("hidden");
-        els.endOverlay.hidden = false;
-        els.endOverlay.setAttribute("aria-hidden", "false");
+        setHidden(els.endOverlay, false);
         soundManager.playWin();
         return;
     }
 
-    if (els.starsDisplay) els.starsDisplay.textContent = starsStr;
-
-    if (coopMode) {
-      els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} · ${t.irisLabel} ${state.player.score} · ${t.lunaLabel} ${state.player2.score} · ${t.hits}: ${livesLostThisLevel}`;
-    } else {
-      els.completeStats.textContent = `${t.seeds}: ${state.seeds.filter(s => s.collected).length}/${state.totalSeeds} · ${t.time}: ${formatTime(levelTime)} · ${t.hits}: ${livesLostThisLevel}`;
-    }
-
-    els.completeOverlay.classList.remove("hidden");
-    els.completeOverlay.hidden = false;
-    els.completeOverlay.setAttribute("aria-hidden", "false");
+    renderCompleteOverlayContent(stars);
+    setHidden(els.completeOverlay, false);
     soundManager.playWin();
 }
 
 els.nextLevel.addEventListener("click", () => {
-    els.completeOverlay.classList.add("hidden");
-    els.completeOverlay.hidden = true;
-    els.completeOverlay.setAttribute("aria-hidden", "true");
+    hideCompleteOverlay();
     levelIndex++;
     if (levelIndex >= levels.length) {
         // Show the end overlay rather than reusing the start overlay
@@ -1000,7 +1055,7 @@ els.nextLevel.addEventListener("click", () => {
 
 function updateHud() {
   els.time.textContent = `⏱ ${i18n[currentLang].time} ${formatTime(runTime)}`;
-  els.hearts.textContent = "💖 " + "♡".repeat(hearts);
+  els.hearts.textContent = "♡".repeat(hearts);
   els.progress.style.width = `${Math.round(progressPercent())}%`;
 }
 
@@ -1383,9 +1438,7 @@ els.continue.addEventListener("click", () => {
 });
 
 document.querySelector("#playAgainBtn").addEventListener("click", () => {
-    els.endOverlay.classList.add("hidden");
-    els.endOverlay.hidden = true;
-    els.endOverlay.setAttribute("aria-hidden", "true");
+    hideEndOverlay();
     localStorage.removeItem("moonGardenProgress");
     updateContinueButton();
     startGame(0);
@@ -1442,6 +1495,8 @@ function populateLevelSelector() {
 }
 
 // Init
+hideCompleteOverlay();
+hideEndOverlay();
 switchLanguage("en");
 updateContinueButton();
 populateLevelSelector();
