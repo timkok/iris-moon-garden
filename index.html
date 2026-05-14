@@ -49,6 +49,8 @@
               <button id="startBtn" type="button" class="btn-primary">Start Adventure</button>
               <button id="continueBtn" type="button" class="btn-primary hidden" hidden aria-hidden="true" style="background: #2e8b68;">Continue</button>
               <button id="openLevelMapBtn" type="button" class="btn-primary" style="background: #7b5dc8;">Level Map</button>
+              <button id="stickerBookStartBtn" type="button" class="btn-primary" style="background: #2e8b68;">Sticker Book</button>
+              <button id="settingsLangBtn" type="button" class="btn-primary" style="background: #3478b9;">Settings / Language</button>
             </div>
 
             <!-- Mode Selector -->
@@ -69,6 +71,9 @@
               <p id="selectLevelLabel" style="color: #657189; font-size: 0.85rem; margin-bottom: 8px;">Quick start · 18 levels · all unlocked</p>
               <div id="level-selector" style="display: grid; gap: 8px; margin: 0 auto; max-width: 100%;">
                 <!-- Compact chapter strip will be inserted by JS -->
+              </div>
+              <div id="start-sticker-container" class="hidden" hidden aria-hidden="true" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 16px auto 0; max-width: 520px;">
+                <!-- Stickers will be inserted by JS -->
               </div>
             </div>
           </div>
@@ -110,6 +115,18 @@
             <p id="levelMapRecommend" style="margin: 4px 0 12px; color: #2e8b68; font-weight: 700;"></p>
             <div id="level-map-grid" style="display: grid; gap: 12px; margin-bottom: 12px;"></div>
             <button id="levelMapCloseBtn" type="button" class="btn-primary" style="background: #657189;">Close</button>
+          </div>
+        </div>
+
+        <!-- Skip Confirm Overlay -->
+        <div id="skip-confirm-overlay" class="overlay hidden" aria-hidden="true" hidden>
+          <div class="overlay-panel">
+            <h2 id="skipConfirmTitle" style="color: #7b5dc8;">Moon Magic</h2>
+            <p id="skipConfirmCopy">Skip to the next level? You can come back anytime.</p>
+            <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 220px; margin: 12px auto 0;">
+              <button id="skipConfirmYesBtn" type="button" class="btn-primary">Skip Level</button>
+              <button id="skipConfirmNoBtn" type="button" class="btn-primary" style="background: #657189;">Keep Playing</button>
+            </div>
           </div>
         </div>
 
@@ -165,8 +182,8 @@
 
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
-  <script src="./audio.js?v=113"></script>
-  <script src="./game.js?v=113"></script>
+  <script src="./audio.js?v=114"></script>
+  <script src="./game.js?v=114"></script>
   <script src="./bot.js"></script>
 </body>
 </html>

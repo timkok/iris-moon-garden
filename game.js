@@ -13,6 +13,9 @@ const els = {
   overlayTitle: document.querySelector("#overlayTitle"),
   overlayCopy: document.querySelector("#overlayCopy"),
   start: document.querySelector("#startBtn"),
+  stickerBookStart: document.querySelector("#stickerBookStartBtn"),
+  settingsLang: document.querySelector("#settingsLangBtn"),
+  startStickerContainer: document.querySelector("#start-sticker-container"),
   restart: document.querySelector("#restartBtn"),
   pause: document.querySelector("#pauseBtn"),
   magicHelp: document.querySelector("#magicHelpBtn"),
@@ -76,6 +79,11 @@ const els = {
   openLevelMap: document.querySelector("#openLevelMapBtn"),
   completeLevelMap: document.querySelector("#completeLevelMapBtn"),
   completeRecommend: document.querySelector("#complete-recommend"),
+  skipConfirmOverlay: document.querySelector("#skip-confirm-overlay"),
+  skipConfirmTitle: document.querySelector("#skipConfirmTitle"),
+  skipConfirmCopy: document.querySelector("#skipConfirmCopy"),
+  skipConfirmYes: document.querySelector("#skipConfirmYesBtn"),
+  skipConfirmNo: document.querySelector("#skipConfirmNoBtn"),
 };
 
 const TILE = 48;
@@ -115,6 +123,7 @@ const i18n = {
         startBtn: "开始新冒险",
         continueBtn: "继续游戏",
         continueFrom: "从第 {n} 关继续",
+        settingsLanguageBtn: "设置 / 语言",
         restartBtn: "重新开始",
         pauseBtn: "暂停",
         pauseBtnActive: "继续",
@@ -206,6 +215,7 @@ const i18n = {
         backToStart: "回到开始页",
         closeBtn: "关闭",
         skipConfirmCopy: "跳到下一关？你随时可以回来再玩。",
+        skipConfirmTitle: "月光魔法",
         skipConfirmYes: "好的，跳过",
         skipConfirmNo: "继续这一关",
         starRating: "{stars} / 3 颗星",
@@ -236,6 +246,7 @@ const i18n = {
         startBtn: "Start Adventure",
         continueBtn: "Continue",
         continueFrom: "Continue from Level {n}",
+        settingsLanguageBtn: "Settings / Language",
         restartBtn: "Restart",
         pauseBtn: "Pause",
         pauseBtnActive: "Resume",
@@ -327,6 +338,7 @@ const i18n = {
         backToStart: "Back to Start",
         closeBtn: "Close",
         skipConfirmCopy: "Skip to the next level? You can come back anytime.",
+        skipConfirmTitle: "Moon Magic",
         skipConfirmYes: "Yes, skip",
         skipConfirmNo: "Keep playing",
         starRating: "{stars} / 3 stars",
@@ -1076,6 +1088,7 @@ const defaultSave = {
   skipped: {},
   completed: {},
   lastPlayed: 0,
+  started: false,
   muted: true,
   cozyMode: true,
   difficulty: "cozy",
@@ -1089,7 +1102,7 @@ function readSave() {
     console.warn("Could not read save data", error);
   }
   const legacyProgress = parseInt(localStorage.getItem("moonGardenProgress") || "0", 10);
-  return { ...defaultSave, unlockedLevel: Math.max(1, legacyProgress + 1) };
+  return { ...defaultSave, unlockedLevel: Math.max(1, legacyProgress + 1), lastPlayed: Math.max(0, legacyProgress), started: legacyProgress > 0 };
 }
 
 function writeSave(patch) {
@@ -1160,7 +1173,7 @@ function markLevelComplete(idx, { stars = 0, time = 0, flowerFound = false, skip
   if (skipped) skippedMap[num] = true;
   if (flowerFound) flowers[num] = true;
   const unlockedLevel = Math.max(save.unlockedLevel || 1, Math.min(levels.length, num + 1));
-  writeSave({ completed, bestStars, bestTimes, skipped: skippedMap, flowers, unlockedLevel, lastPlayed: idx });
+  writeSave({ completed, bestStars, bestTimes, skipped: skippedMap, flowers, unlockedLevel, lastPlayed: idx, started: true });
 }
 
 function setHidden(el, hidden) {
@@ -1284,6 +1297,8 @@ function switchLanguage(lang) {
     if (els.storyTitle) els.storyTitle.textContent = t.storyTitle;
     els.overlayCopy.textContent = t.intro;
     els.start.textContent = t.startBtn;
+    if (els.stickerBookStart) els.stickerBookStart.textContent = t.stickerBookBtn;
+    if (els.settingsLang) els.settingsLang.textContent = t.settingsLanguageBtn;
     els.restart.textContent = t.restartBtn;
     els.pause.textContent = paused ? t.pauseBtnActive : t.pauseBtn;
     els.help.textContent = showHintPath ? t.helpBtnActive : t.helpBtn;
@@ -1311,6 +1326,10 @@ function switchLanguage(lang) {
     if (els.levelMapTitle) els.levelMapTitle.textContent = tt("levelMapTitle");
     if (els.levelMapHint) els.levelMapHint.textContent = tt("levelMapHint");
     if (els.levelMapClose) els.levelMapClose.textContent = tt("closeBtn");
+    if (els.skipConfirmTitle) els.skipConfirmTitle.textContent = tt("skipConfirmTitle");
+    if (els.skipConfirmCopy) els.skipConfirmCopy.textContent = tt("skipConfirmCopy");
+    if (els.skipConfirmYes) els.skipConfirmYes.textContent = tt("skipConfirmYes");
+    if (els.skipConfirmNo) els.skipConfirmNo.textContent = tt("skipConfirmNo");
     if (els.levelMapOverlay && !els.levelMapOverlay.hidden) populateLevelMapGrid();
     updateContinueButton();
     updateModeUI();
@@ -1359,13 +1378,13 @@ function updateDifficultyUI() {
 
 function updateContinueButton() {
   if (!els.continue) return;
-  const t = i18n[currentLang];
-  const saved = readSave().unlockedLevel;
-  if (saved > 1 && saved <= levels.length) {
+  const save = readSave();
+  const savedIndex = Math.max(0, Math.min(levels.length - 1, Number(save.lastPlayed || 0)));
+  if (save.started && savedIndex >= 0 && savedIndex < levels.length) {
     els.continue.hidden = false;
     els.continue.removeAttribute("aria-hidden");
     els.continue.classList.remove("hidden");
-    els.continue.textContent = tt("continueFrom", { n: saved });
+    els.continue.textContent = tt("continueFrom", { n: savedIndex + 1 });
   } else {
     els.continue.hidden = true;
     els.continue.setAttribute("aria-hidden", "true");
@@ -1527,7 +1546,8 @@ function startGame(startIndex = 0) {
       hideOverlay();
       closeLevelMap();
       closePauseMenu();
-      writeSave({ lastPlayed: levelIndex });
+      closeSkipConfirm();
+      writeSave({ lastPlayed: levelIndex, started: true });
       updateContinueButton();
       requestAnimationFrame(loop);
       console.log("Game started successfully");
@@ -1860,6 +1880,21 @@ function showMagicHelp(show = true) {
   setHidden(els.magicPanel, !show);
 }
 
+function openSkipConfirm() {
+  if (!running) return;
+  paused = true;
+  showMagicHelp(false);
+  if (els.skipConfirmTitle) els.skipConfirmTitle.textContent = tt("skipConfirmTitle");
+  if (els.skipConfirmCopy) els.skipConfirmCopy.textContent = tt("skipConfirmCopy");
+  if (els.skipConfirmYes) els.skipConfirmYes.textContent = tt("skipConfirmYes");
+  if (els.skipConfirmNo) els.skipConfirmNo.textContent = tt("skipConfirmNo");
+  setHidden(els.skipConfirmOverlay, false);
+}
+
+function closeSkipConfirm() {
+  setHidden(els.skipConfirmOverlay, true);
+}
+
 function triggerPathHint(duration = 3) {
   showHintPath = true;
   hintTimer = Math.max(hintTimer, duration);
@@ -1869,16 +1904,24 @@ function triggerPathHint(duration = 3) {
 
 function skipLevel() {
   if (!running) return;
-  const ok = window.confirm(tt("skipConfirmCopy"));
-  if (!ok) return;
+  openSkipConfirm();
+}
+
+function confirmSkipLevel() {
+  if (!running) return;
   levelAssist.skip = true;
-  state.seeds.forEach((seed) => { seed.collected = true; });
   state.flowers.forEach((flower) => { flower.collected = false; });
-  state.hasKey = true;
-  state.switches.forEach((sw) => { sw.activated = true; });
-  running = false;
+  markLevelComplete(levelIndex, { stars: 1, time: Math.max(1, Math.floor(levelTime)), skipped: true });
+  closeSkipConfirm();
   showToast(i18n[currentLang].magicSkipToast, 1.6);
-  showLevelCompleteScreen();
+  const nextIndex = Math.min(levels.length - 1, levelIndex + 1);
+  if (nextIndex === levelIndex) {
+    running = false;
+    renderEndOverlayContent(1);
+    setHidden(els.endOverlay, false);
+    return;
+  }
+  startGame(nextIndex);
 }
 
 function handleRestartAssist() {
@@ -1965,7 +2008,7 @@ function recordLevelResult(stars) {
   }
   if (levelAssist.skip) skipped[levelNumber] = true;
   const unlockedLevel = Math.min(levels.length, Math.max(save.unlockedLevel || 1, levelIndex + 2));
-  writeSave({ unlockedLevel, bestStars, bestTimes, flowers, stickers, completed, skipped, lastPlayed: levelIndex, difficulty: difficultyMode, cozyMode: difficultyMode === "cozy" });
+  writeSave({ unlockedLevel, bestStars, bestTimes, flowers, stickers, completed, skipped, lastPlayed: levelIndex, started: true, difficulty: difficultyMode, cozyMode: difficultyMode === "cozy" });
   localStorage.setItem("moonGardenProgress", String(unlockedLevel - 1));
   updateDifficultyUI();
   populateLevelSelector();
@@ -2544,6 +2587,12 @@ if (els.magicSlow) els.magicSlow.addEventListener("click", () => {
 });
 if (els.magicPath) els.magicPath.addEventListener("click", () => triggerPathHint(6));
 if (els.magicSkip) els.magicSkip.addEventListener("click", skipLevel);
+if (els.skipConfirmYes) els.skipConfirmYes.addEventListener("click", confirmSkipLevel);
+if (els.skipConfirmNo) els.skipConfirmNo.addEventListener("click", () => {
+  closeSkipConfirm();
+  paused = false;
+  if (els.pause) els.pause.textContent = i18n[currentLang].pauseBtn;
+});
 if (els.magicCozy) els.magicCozy.addEventListener("click", () => {
   levelAssist.bridgeExtend = true;
   state.bridgeTimer = Math.max(state.bridgeTimer, (levels[levelIndex]?.bridgeDuration || 8) + 5);
@@ -2571,9 +2620,18 @@ document.querySelectorAll(".pad button").forEach((button) => {
 });
 
 els.continue.addEventListener("click", () => {
-    const progress = readSave().unlockedLevel;
-    if (progress > 1 && progress <= levels.length) startGame(progress - 1);
+    const save = readSave();
+    const progress = Math.max(0, Math.min(levels.length - 1, Number(save.lastPlayed || 0)));
+    if (save.started) startGame(progress);
 });
+
+if (els.stickerBookStart) els.stickerBookStart.addEventListener("click", () => {
+    renderStickerBook(els.startStickerContainer);
+    setHidden(els.startStickerContainer, false);
+    if (els.startStickerContainer) els.startStickerContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+if (els.settingsLang) els.settingsLang.addEventListener("click", () => switchLanguage(currentLang === "zh" ? "en" : "zh"));
 
 document.querySelector("#playAgainBtn").addEventListener("click", () => {
     hideEndOverlay();
@@ -2586,16 +2644,6 @@ document.querySelector("#showStickersBtn").addEventListener("click", () => {
     renderStickerBook();
     if (els.stickerContainer) els.stickerContainer.scrollIntoView({ behavior: "smooth", block: "center" });
 });
-
-if (els.levelMap) {
-  els.levelMap.addEventListener("click", () => {
-    hideEndOverlay();
-    running = false;
-    els.overlay.classList.remove("hidden");
-    updateContinueButton();
-    populateLevelSelector();
-  });
-}
 
 if (els.endLang) els.endLang.addEventListener("click", () => switchLanguage(currentLang === "zh" ? "en" : "zh"));
 
@@ -2614,17 +2662,18 @@ if (els.modeCozy) els.modeCozy.addEventListener("click", () => setDifficulty("co
 if (els.modeAdventure) els.modeAdventure.addEventListener("click", () => setDifficulty("adventure"));
 if (els.modeChallenge) els.modeChallenge.addEventListener("click", () => setDifficulty("challenge"));
 
-function renderStickerBook() {
-  if (!els.stickerContainer) return;
-  els.stickerContainer.innerHTML = "";
-  els.stickerContainer.hidden = false;
+function renderStickerBook(container = els.stickerContainer) {
+  if (!container) return;
+  container.innerHTML = "";
+  container.hidden = false;
+  container.setAttribute("aria-hidden", "false");
   const save = readSave();
   const progress = document.createElement("div");
   progress.className = "pill";
   progress.style.background = "#fff";
   progress.style.color = "#243044";
   progress.textContent = tt("flowersFound", { n: countFoundFlowers(), total: levels.length });
-  els.stickerContainer.appendChild(progress);
+  container.appendChild(progress);
   levels.forEach((lvl, idx) => {
     const unlocked = save.stickers?.[idx + 1] || localStorage.getItem("moonGardenSticker_" + idx);
     const stickerEl = document.createElement("div");
@@ -2634,7 +2683,7 @@ function renderStickerBook() {
     stickerEl.style.filter = unlocked ? "none" : "grayscale(1)";
     stickerEl.textContent = unlocked ? `⭐ ${lvl.sticker}` : "🌑";
     stickerEl.title = unlocked ? lvl.sticker : "???";
-    els.stickerContainer.appendChild(stickerEl);
+    container.appendChild(stickerEl);
   });
 }
 
