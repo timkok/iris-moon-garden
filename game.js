@@ -60,6 +60,22 @@ const els = {
   modeCozy: document.querySelector("#modeCozyBtn"),
   modeAdventure: document.querySelector("#modeAdventureBtn"),
   modeChallenge: document.querySelector("#modeChallengeBtn"),
+  pauseOverlay: document.querySelector("#pause-overlay"),
+  pauseTitle: document.querySelector("#pauseTitle"),
+  resumeBtn: document.querySelector("#resumeBtn"),
+  restartLevelBtn: document.querySelector("#restartLevelBtn"),
+  pauseLevelMapBtn: document.querySelector("#pauseLevelMapBtn"),
+  pauseMagicBtn: document.querySelector("#pauseMagicBtn"),
+  backToStartBtn: document.querySelector("#backToStartBtn"),
+  levelMapOverlay: document.querySelector("#level-map-overlay"),
+  levelMapTitle: document.querySelector("#levelMapTitle"),
+  levelMapHint: document.querySelector("#levelMapHint"),
+  levelMapRecommend: document.querySelector("#levelMapRecommend"),
+  levelMapGrid: document.querySelector("#level-map-grid"),
+  levelMapClose: document.querySelector("#levelMapCloseBtn"),
+  openLevelMap: document.querySelector("#openLevelMapBtn"),
+  completeLevelMap: document.querySelector("#completeLevelMapBtn"),
+  completeRecommend: document.querySelector("#complete-recommend"),
 };
 
 const TILE = 48;
@@ -167,9 +183,36 @@ const i18n = {
         stickersUnlocked: "解锁的贴纸：{n} / {total}",
         flowerFound: "月光花：已找到",
         flowerMissing: "月光花：还没找到",
-        chapter1: "第 1 章：月光花园基础",
+        chapter1: "第 1 章：月光花园",
         chapter2: "第 2 章：星星迷宫",
         chapter3: "第 3 章：梦月之境",
+        chapter1Difficulty: "温和挑战",
+        chapter2Difficulty: "冒险谜题",
+        chapter3Difficulty: "月光挑战",
+        difficultyEasy: "温和挑战",
+        difficultyMedium: "谜题起步",
+        difficultyHard: "冒险谜题",
+        difficultyChallenge: "月光挑战",
+        levelMapTitle: "关卡地图",
+        levelMapHint: "你可以随时选择任何关卡。",
+        recommendedNext: "推荐下一关：第 {n} 关",
+        recommendedBadge: "推荐",
+        harderLabel: "更难",
+        tryWhenReady: "准备好再挑战",
+        adventureChallenge: "冒险挑战",
+        pauseTitle: "暂停",
+        resume: "继续",
+        restartLevel: "重新开始本关",
+        backToStart: "回到开始页",
+        closeBtn: "关闭",
+        skipConfirmCopy: "跳到下一关？你随时可以回来再玩。",
+        skipConfirmYes: "好的，跳过",
+        skipConfirmNo: "继续这一关",
+        starRating: "{stars} / 3 颗星",
+        levelStatusBest: "最好成绩 {stars} 星",
+        levelStatusSkipped: "已跳过（1 星）",
+        levelStatusNew: "未挑战",
+        chapterRecommend: "本章节推荐",
         modeCozy: "温馨模式",
         modeAdventure: "冒险模式",
         modeChallenge: "挑战模式",
@@ -260,9 +303,36 @@ const i18n = {
         stickersUnlocked: "Stickers Unlocked: {n} / {total}",
         flowerFound: "Moon Flower: Found",
         flowerMissing: "Moon Flower: Not found yet",
-        chapter1: "Chapter 1: Moon Garden Basics",
+        chapter1: "Chapter 1: Moon Garden",
         chapter2: "Chapter 2: Star Maze",
         chapter3: "Chapter 3: Dream Moon",
+        chapter1Difficulty: "Gentle Challenge",
+        chapter2Difficulty: "Adventure Puzzle",
+        chapter3Difficulty: "Moon Challenge",
+        difficultyEasy: "Gentle Challenge",
+        difficultyMedium: "Puzzle Start",
+        difficultyHard: "Adventure Puzzle",
+        difficultyChallenge: "Moon Challenge",
+        levelMapTitle: "Level Map",
+        levelMapHint: "You can play any level anytime.",
+        recommendedNext: "Recommended next: Level {n}",
+        recommendedBadge: "Recommended",
+        harderLabel: "Harder",
+        tryWhenReady: "Try when ready",
+        adventureChallenge: "Adventure challenge",
+        pauseTitle: "Paused",
+        resume: "Resume",
+        restartLevel: "Restart Level",
+        backToStart: "Back to Start",
+        closeBtn: "Close",
+        skipConfirmCopy: "Skip to the next level? You can come back anytime.",
+        skipConfirmYes: "Yes, skip",
+        skipConfirmNo: "Keep playing",
+        starRating: "{stars} / 3 stars",
+        levelStatusBest: "Best: {stars}★",
+        levelStatusSkipped: "Skipped (1★)",
+        levelStatusNew: "Not played yet",
+        chapterRecommend: "Recommended in this chapter",
         modeCozy: "Cozy Mode",
         modeAdventure: "Adventure",
         modeChallenge: "Challenge",
@@ -1001,6 +1071,9 @@ const defaultSave = {
   bestStars: {},
   flowers: {},
   stickers: {},
+  skipped: {},
+  completed: {},
+  lastPlayed: 0,
   muted: true,
   cozyMode: true,
   difficulty: "cozy",
@@ -1041,6 +1114,51 @@ function activeDifficulty() {
 function tt(key, vars = {}) {
   const v = i18n[currentLang][key] ?? i18n.en[key] ?? "";
   return v.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : ""));
+}
+
+function chapterIndexFor(levelIdx) {
+  return chapterMeta.findIndex((c) => levelIdx >= c.start && levelIdx <= c.end);
+}
+
+function chapterDifficultyLabel(levelIdx) {
+  const c = chapterIndexFor(levelIdx);
+  return tt(c === 0 ? "chapter1Difficulty" : c === 1 ? "chapter2Difficulty" : "chapter3Difficulty");
+}
+
+function levelDifficultyLabel(levelIdx) {
+  if (levelIdx <= 2) return tt("difficultyEasy");
+  if (levelIdx <= 5) return tt("difficultyMedium");
+  if (levelIdx <= 11) return tt("difficultyHard");
+  return tt("difficultyChallenge");
+}
+
+function recommendedNextLevel() {
+  const save = readSave();
+  for (let i = 0; i < levels.length; i++) {
+    const num = i + 1;
+    const completed = save.completed?.[num];
+    const stars = Number(save.bestStars?.[num] || 0);
+    if (!completed || stars < 1) return i;
+  }
+  // Everything done; recommend last played or 0
+  return Math.max(0, Math.min(levels.length - 1, (save.lastPlayed | 0)));
+}
+
+function markLevelComplete(idx, { stars = 0, time = 0, flowerFound = false, skipped = false } = {}) {
+  const save = readSave();
+  const num = idx + 1;
+  const completed = { ...(save.completed || {}) };
+  const bestStars = { ...(save.bestStars || {}) };
+  const bestTimes = { ...(save.bestTimes || {}) };
+  const skippedMap = { ...(save.skipped || {}) };
+  const flowers = { ...(save.flowers || {}) };
+  completed[num] = true;
+  if (stars > (bestStars[num] | 0)) bestStars[num] = stars;
+  if (!bestTimes[num] || (time > 0 && time < bestTimes[num])) bestTimes[num] = time;
+  if (skipped) skippedMap[num] = true;
+  if (flowerFound) flowers[num] = true;
+  const unlockedLevel = Math.max(save.unlockedLevel || 1, Math.min(levels.length, num + 1));
+  writeSave({ completed, bestStars, bestTimes, skipped: skippedMap, flowers, unlockedLevel, lastPlayed: idx });
 }
 
 function setHidden(el, hidden) {
@@ -1103,6 +1221,11 @@ function renderCompleteOverlayContent(stars = levelCompletionStars()) {
   const t = i18n[currentLang];
   if (els.completeTitle) els.completeTitle.textContent = t.completeTitle;
   if (els.nextLevel) els.nextLevel.textContent = t.nextLevelBtn;
+  if (els.completeLevelMap) els.completeLevelMap.textContent = t.levelMapBtn;
+  if (els.completeRecommend) {
+    const rec = recommendedNextLevel();
+    els.completeRecommend.textContent = tt("recommendedNext", { n: rec + 1 });
+  }
   if (els.starsDisplay) els.starsDisplay.textContent = "⭐".repeat(stars) + "☆".repeat(3 - stars);
   if (!els.completeStats) return;
   const collected = state.seeds.filter((s) => s.collected).length;
@@ -1175,6 +1298,18 @@ function switchLanguage(lang) {
     document.title = t.title;
     if (els.completeOverlay && !els.completeOverlay.hidden) renderCompleteOverlayContent();
     if (els.endOverlay && !els.endOverlay.hidden) renderEndOverlayContent();
+    if (els.openLevelMap) els.openLevelMap.textContent = t.levelMapBtn;
+    if (els.levelMap) els.levelMap.textContent = t.levelMapBtn;
+    if (els.pauseTitle) els.pauseTitle.textContent = tt("pauseTitle");
+    if (els.resumeBtn) els.resumeBtn.textContent = tt("resume");
+    if (els.restartLevelBtn) els.restartLevelBtn.textContent = tt("restartLevel");
+    if (els.pauseLevelMapBtn) els.pauseLevelMapBtn.textContent = tt("levelMapBtn");
+    if (els.pauseMagicBtn) els.pauseMagicBtn.textContent = tt("magicHelpBtn");
+    if (els.backToStartBtn) els.backToStartBtn.textContent = tt("backToStart");
+    if (els.levelMapTitle) els.levelMapTitle.textContent = tt("levelMapTitle");
+    if (els.levelMapHint) els.levelMapHint.textContent = tt("levelMapHint");
+    if (els.levelMapClose) els.levelMapClose.textContent = tt("closeBtn");
+    if (els.levelMapOverlay && !els.levelMapOverlay.hidden) populateLevelMapGrid();
     updateContinueButton();
     updateModeUI();
     updateDifficultyUI();
@@ -1388,6 +1523,10 @@ function startGame(startIndex = 0) {
       loadLevel(levelIndex);
       updateModeUI();
       hideOverlay();
+      closeLevelMap();
+      closePauseMenu();
+      writeSave({ lastPlayed: levelIndex });
+      updateContinueButton();
       requestAnimationFrame(loop);
       console.log("Game started successfully");
   } catch (error) {
@@ -1728,6 +1867,8 @@ function triggerPathHint(duration = 3) {
 
 function skipLevel() {
   if (!running) return;
+  const ok = window.confirm(tt("skipConfirmCopy"));
+  if (!ok) return;
   levelAssist.skip = true;
   state.seeds.forEach((seed) => { seed.collected = true; });
   state.flowers.forEach((flower) => { flower.collected = false; });
@@ -1810,6 +1951,9 @@ function recordLevelResult(stars) {
   const bestTimes = { ...(save.bestTimes || {}) };
   const flowers = { ...(save.flowers || {}) };
   const stickers = { ...(save.stickers || {}) };
+  const completed = { ...(save.completed || {}) };
+  const skipped = { ...(save.skipped || {}) };
+  completed[levelNumber] = true;
   bestStars[levelNumber] = Math.max(Number(bestStars[levelNumber] || 0), stars);
   const wholeTime = Math.max(1, Math.floor(levelTime));
   bestTimes[levelNumber] = bestTimes[levelNumber] ? Math.min(Number(bestTimes[levelNumber]), wholeTime) : wholeTime;
@@ -1817,8 +1961,9 @@ function recordLevelResult(stars) {
     flowers[levelNumber] = true;
     stickers[levelNumber] = levels[levelIndex].sticker;
   }
+  if (levelAssist.skip) skipped[levelNumber] = true;
   const unlockedLevel = Math.min(levels.length, Math.max(save.unlockedLevel || 1, levelIndex + 2));
-  writeSave({ unlockedLevel, bestStars, bestTimes, flowers, stickers, difficulty: difficultyMode, cozyMode: difficultyMode === "cozy" });
+  writeSave({ unlockedLevel, bestStars, bestTimes, flowers, stickers, completed, skipped, lastPlayed: levelIndex, difficulty: difficultyMode, cozyMode: difficultyMode === "cozy" });
   localStorage.setItem("moonGardenProgress", String(unlockedLevel - 1));
   updateDifficultyUI();
   populateLevelSelector();
@@ -2329,8 +2474,8 @@ window.addEventListener("keydown", (event) => {
   }
   keys.add(key);
   if (key === " " && running) {
-    paused = !paused;
-    els.pause.textContent = paused ? i18n[currentLang].pauseBtnActive : i18n[currentLang].pauseBtn;
+    if (paused) closePauseMenu();
+    else openPauseMenu();
   }
 });
 
@@ -2351,8 +2496,37 @@ els.restart.addEventListener("click", () => {
 
 els.pause.addEventListener("click", () => {
     if (!running) return;
-    paused = !paused;
-    els.pause.textContent = paused ? i18n[currentLang].pauseBtnActive : i18n[currentLang].pauseBtn;
+    if (paused) closePauseMenu();
+    else openPauseMenu();
+});
+
+if (els.resumeBtn) els.resumeBtn.addEventListener("click", closePauseMenu);
+if (els.restartLevelBtn) els.restartLevelBtn.addEventListener("click", () => {
+  closePauseMenu();
+  startGame(levelIndex);
+});
+if (els.pauseLevelMapBtn) els.pauseLevelMapBtn.addEventListener("click", () => {
+  setHidden(els.pauseOverlay, true);
+  openLevelMap();
+});
+if (els.pauseMagicBtn) els.pauseMagicBtn.addEventListener("click", () => {
+  closePauseMenu();
+  showMagicHelp(true);
+});
+if (els.backToStartBtn) els.backToStartBtn.addEventListener("click", backToStartScreen);
+
+if (els.openLevelMap) els.openLevelMap.addEventListener("click", openLevelMap);
+if (els.completeLevelMap) els.completeLevelMap.addEventListener("click", () => {
+  hideCompleteOverlay();
+  openLevelMap();
+});
+if (els.levelMapClose) els.levelMapClose.addEventListener("click", () => {
+  closeLevelMap();
+  if (!running) setHidden(els.overlay, false);
+});
+if (els.levelMap) els.levelMap.addEventListener("click", () => {
+  hideEndOverlay();
+  openLevelMap();
 });
 
 els.help.addEventListener("click", () => {
@@ -2481,69 +2655,200 @@ document.querySelector("#coopModeBtn").addEventListener("click", () => {
   }
 });
 
-function populateLevelSelector() {
-    const selector = els.levelSelector;
-    if (!selector) return;
-    selector.innerHTML = "";
-    const save = readSave();
-    selector.style.display = "grid";
-    selector.style.gridTemplateColumns = "1fr";
-    selector.style.gap = "12px";
-    selector.style.maxWidth = "560px";
-    chapterMeta.forEach((chapter) => {
-      const group = document.createElement("div");
-      group.style.border = "1px solid #ddd1c0";
-      group.style.borderRadius = "8px";
-      group.style.padding = "10px";
-      group.style.background = "rgba(255,255,255,0.72)";
+function renderChapters(container, { detailed = false } = {}) {
+  if (!container) return;
+  container.innerHTML = "";
+  const save = readSave();
+  const recommendedIdx = recommendedNextLevel();
+  container.style.display = "grid";
+  container.style.gridTemplateColumns = "1fr";
+  container.style.gap = "12px";
 
-      const heading = document.createElement("div");
-      heading.textContent = tt(chapter.key);
-      heading.style.fontWeight = "900";
-      heading.style.color = "#243044";
-      heading.style.marginBottom = "8px";
-      group.appendChild(heading);
+  chapterMeta.forEach((chapter, ci) => {
+    const group = document.createElement("div");
+    group.style.border = "1px solid #ddd1c0";
+    group.style.borderRadius = "10px";
+    group.style.padding = "10px";
+    group.style.background = "rgba(255,255,255,0.78)";
 
-      const grid = document.createElement("div");
-      grid.style.display = "grid";
-      grid.style.gridTemplateColumns = "repeat(6, minmax(0, 1fr))";
-      grid.style.gap = "8px";
+    const headRow = document.createElement("div");
+    headRow.style.display = "flex";
+    headRow.style.alignItems = "baseline";
+    headRow.style.justifyContent = "space-between";
+    headRow.style.gap = "8px";
+    headRow.style.marginBottom = "8px";
 
-      for (let idx = chapter.start; idx <= chapter.end; idx++) {
-        const lvl = levels[idx];
-        const btn = document.createElement("button");
-        btn.type = "button";
-        const levelNumber = idx + 1;
-        const locked = levelNumber > (save.unlockedLevel || 1);
-        const stars = Number(save.bestStars?.[levelNumber] || 0);
-        const flower = save.flowers?.[levelNumber] || localStorage.getItem("moonGardenFlower_" + idx);
-        btn.innerHTML = locked
-          ? `<strong>${levelNumber}</strong><span>🔒</span>`
-          : `<strong>${levelNumber}</strong><span>${"⭐".repeat(stars)}${"☆".repeat(3 - stars)}</span><span>${flower ? "🌸" : "◇"}</span>`;
-        btn.style.cursor = "pointer";
-        btn.style.background = locked ? "#eee" : "#fff";
-        btn.style.border = "1px solid #ddd1c0";
-        btn.style.color = "#243044";
-        btn.style.borderRadius = "8px";
-        btn.style.minHeight = "56px";
-        btn.style.padding = "4px";
-        btn.style.display = "grid";
-        btn.style.placeItems = "center";
-        btn.style.gap = "1px";
-        btn.style.fontWeight = "bold";
-        btn.style.fontSize = "0.72rem";
-        btn.style.boxShadow = "none";
-        btn.title = lvl.names[currentLang];
-        btn.disabled = locked;
-        btn.style.opacity = locked ? "0.58" : "1";
-        btn.addEventListener("click", () => {
-          if (!locked) startGame(idx);
-        });
-        grid.appendChild(btn);
+    const heading = document.createElement("div");
+    heading.textContent = tt(chapter.key);
+    heading.style.fontWeight = "900";
+    heading.style.color = "#243044";
+    headRow.appendChild(heading);
+
+    const diff = document.createElement("div");
+    const diffKey = ci === 0 ? "chapter1Difficulty" : ci === 1 ? "chapter2Difficulty" : "chapter3Difficulty";
+    let extra = "";
+    if (ci === 1) extra = ` · ${tt("harderLabel")}`;
+    if (ci === 2) extra = ` · ${tt("tryWhenReady")}`;
+    diff.textContent = `${tt(diffKey)}${extra}`;
+    diff.style.fontSize = "0.78rem";
+    diff.style.color = ci === 0 ? "#2e8b68" : ci === 1 ? "#d89b25" : "#7b5dc8";
+    diff.style.fontWeight = "800";
+    headRow.appendChild(diff);
+    group.appendChild(headRow);
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = detailed ? "repeat(auto-fill, minmax(150px, 1fr))" : "repeat(6, minmax(0, 1fr))";
+    grid.style.gap = "8px";
+
+    for (let idx = chapter.start; idx <= chapter.end; idx++) {
+      const lvl = levels[idx];
+      if (!lvl) continue;
+      const levelNumber = idx + 1;
+      const stars = Number(save.bestStars?.[levelNumber] || 0);
+      const completed = !!save.completed?.[levelNumber];
+      const skipped = !!save.skipped?.[levelNumber];
+      const flower = !!(save.flowers?.[levelNumber] || localStorage.getItem("moonGardenFlower_" + idx));
+      const isRecommended = idx === recommendedIdx;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.style.cursor = "pointer";
+      btn.style.background = "#fff";
+      btn.style.border = isRecommended ? "2px solid #ffd54a" : "1px solid #ddd1c0";
+      btn.style.color = "#243044";
+      btn.style.borderRadius = "10px";
+      btn.style.padding = detailed ? "10px" : "6px 4px";
+      btn.style.display = "grid";
+      btn.style.placeItems = "center";
+      btn.style.gap = "3px";
+      btn.style.fontWeight = "bold";
+      btn.style.fontSize = detailed ? "0.82rem" : "0.72rem";
+      btn.style.minHeight = detailed ? "94px" : "62px";
+      btn.style.boxShadow = isRecommended ? "0 0 0 3px rgba(255,213,74,0.35), 0 8px 18px rgba(255,213,74,0.18)" : "none";
+      btn.title = lvl.names[currentLang];
+
+      const starsStr = `${"⭐".repeat(stars)}${"☆".repeat(3 - stars)}`;
+      const flowerStr = flower ? "🌸" : "◇";
+      let statusLine = "";
+      if (completed) {
+        statusLine = skipped ? tt("levelStatusSkipped") : tt("levelStatusBest", { stars });
+      } else {
+        statusLine = tt("levelStatusNew");
       }
-      group.appendChild(grid);
-      selector.appendChild(group);
-    });
+
+      if (detailed) {
+        const numEl = document.createElement("div");
+        numEl.style.fontSize = "1rem";
+        numEl.style.color = "#7b5dc8";
+        numEl.textContent = `🌙 ${levelNumber}`;
+        btn.appendChild(numEl);
+
+        const titleEl = document.createElement("div");
+        titleEl.textContent = lvl.names[currentLang].replace(/^.*?[:：]\s*/, "");
+        titleEl.style.fontSize = "0.78rem";
+        titleEl.style.fontWeight = "700";
+        titleEl.style.color = "#243044";
+        titleEl.style.textAlign = "center";
+        btn.appendChild(titleEl);
+
+        const starsEl = document.createElement("div");
+        starsEl.textContent = starsStr;
+        starsEl.style.color = "#d89b25";
+        btn.appendChild(starsEl);
+
+        const flowerEl = document.createElement("div");
+        flowerEl.textContent = `${flowerStr} ${flower ? tt("flowerFound") : tt("flowerMissing")}`;
+        flowerEl.style.fontSize = "0.72rem";
+        flowerEl.style.color = flower ? "#2e8b68" : "#999";
+        btn.appendChild(flowerEl);
+
+        const statusEl = document.createElement("div");
+        statusEl.textContent = statusLine;
+        statusEl.style.fontSize = "0.72rem";
+        statusEl.style.color = "#657189";
+        btn.appendChild(statusEl);
+
+        if (isRecommended) {
+          const badge = document.createElement("div");
+          badge.textContent = `⭐ ${tt("recommendedBadge")}`;
+          badge.style.fontSize = "0.7rem";
+          badge.style.color = "#d89b25";
+          badge.style.fontWeight = "900";
+          btn.appendChild(badge);
+        }
+      } else {
+        btn.innerHTML = `<strong>${levelNumber}</strong><span style="color:#d89b25;">${starsStr}</span><span>${flowerStr}</span>`;
+        if (isRecommended) {
+          const tag = document.createElement("span");
+          tag.textContent = "⭐";
+          tag.style.color = "#d89b25";
+          tag.style.fontSize = "0.7rem";
+          btn.appendChild(tag);
+        }
+      }
+
+      btn.addEventListener("click", () => startGame(idx));
+      grid.appendChild(btn);
+    }
+    group.appendChild(grid);
+    container.appendChild(group);
+  });
+}
+
+function populateLevelSelector() {
+  renderChapters(els.levelSelector, { detailed: false });
+}
+
+function populateLevelMapGrid() {
+  renderChapters(els.levelMapGrid, { detailed: true });
+  const recIdx = recommendedNextLevel();
+  if (els.levelMapHint) els.levelMapHint.textContent = tt("levelMapHint");
+  if (els.levelMapRecommend) els.levelMapRecommend.textContent = tt("recommendedNext", { n: recIdx + 1 });
+  if (els.levelMapTitle) els.levelMapTitle.textContent = tt("levelMapTitle");
+  if (els.levelMapClose) els.levelMapClose.textContent = tt("closeBtn");
+}
+
+function openLevelMap() {
+  populateLevelMapGrid();
+  setHidden(els.levelMapOverlay, false);
+}
+
+function closeLevelMap() {
+  setHidden(els.levelMapOverlay, true);
+}
+
+function openPauseMenu() {
+  if (!running) return;
+  paused = true;
+  els.pause.textContent = i18n[currentLang].pauseBtnActive;
+  if (els.pauseTitle) els.pauseTitle.textContent = tt("pauseTitle");
+  if (els.resumeBtn) els.resumeBtn.textContent = tt("resume");
+  if (els.restartLevelBtn) els.restartLevelBtn.textContent = tt("restartLevel");
+  if (els.pauseLevelMapBtn) els.pauseLevelMapBtn.textContent = tt("levelMapBtn");
+  if (els.pauseMagicBtn) els.pauseMagicBtn.textContent = tt("magicHelpBtn");
+  if (els.backToStartBtn) els.backToStartBtn.textContent = tt("backToStart");
+  setHidden(els.pauseOverlay, false);
+}
+
+function closePauseMenu() {
+  setHidden(els.pauseOverlay, true);
+  paused = false;
+  els.pause.textContent = i18n[currentLang].pauseBtn;
+}
+
+function backToStartScreen() {
+  running = false;
+  paused = false;
+  closePauseMenu();
+  closeLevelMap();
+  hideCompleteOverlay();
+  hideEndOverlay();
+  setHidden(els.hud, true);
+  setHidden(els.progressBar, true);
+  setHidden(els.overlay, false);
+  updateContinueButton();
+  populateLevelSelector();
 }
 
 // Init

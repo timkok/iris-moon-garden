@@ -48,6 +48,7 @@
             <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 220px; margin: 0 auto;">
               <button id="startBtn" type="button" class="btn-primary">Start Adventure</button>
               <button id="continueBtn" type="button" class="btn-primary hidden" hidden aria-hidden="true" style="background: #2e8b68;">Continue</button>
+              <button id="openLevelMapBtn" type="button" class="btn-primary" style="background: #7b5dc8;">Level Map</button>
             </div>
 
             <!-- Mode Selector -->
@@ -79,7 +80,36 @@
             <h2 style="color: #2e8b68;" id="complete-title"></h2>
             <div class="stars-display" style="font-size: 2rem; color: #ffd700; margin: 10px 0;"></div>
             <p id="complete-stats" style="margin-bottom: 15px;"></p>
-            <button id="nextLevelBtn" type="button" class="btn-primary"></button>
+            <p id="complete-recommend" style="margin: 4px 0 12px; color: #7b5dc8; font-weight: 700;"></p>
+            <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
+              <button id="nextLevelBtn" type="button" class="btn-primary"></button>
+              <button id="completeLevelMapBtn" type="button" class="btn-primary" style="background: #7b5dc8;"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pause Menu Overlay -->
+        <div id="pause-overlay" class="overlay hidden" aria-hidden="true" hidden>
+          <div class="overlay-panel">
+            <h2 id="pauseTitle" style="color: #243044;">Paused</h2>
+            <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 220px; margin: 12px auto 0;">
+              <button id="resumeBtn" type="button" class="btn-primary">Resume</button>
+              <button id="restartLevelBtn" type="button" class="btn-primary" style="background: #d89b25;">Restart Level</button>
+              <button id="pauseLevelMapBtn" type="button" class="btn-primary" style="background: #7b5dc8;">Level Map</button>
+              <button id="pauseMagicBtn" type="button" class="btn-primary" style="background: #2e8b68;">✨ Magic Help</button>
+              <button id="backToStartBtn" type="button" class="btn-primary" style="background: #657189;">Back to Start</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Level Map Overlay (free choice) -->
+        <div id="level-map-overlay" class="overlay hidden" aria-hidden="true" hidden>
+          <div class="overlay-panel" style="width: min(640px, 100%);">
+            <h2 id="levelMapTitle" style="color: #7b5dc8; margin-bottom: 4px;">Level Map</h2>
+            <p id="levelMapHint" style="margin: 4px 0 10px; color: #657189; font-size: 0.85rem;"></p>
+            <p id="levelMapRecommend" style="margin: 4px 0 12px; color: #2e8b68; font-weight: 700;"></p>
+            <div id="level-map-grid" style="display: grid; gap: 12px; margin-bottom: 12px;"></div>
+            <button id="levelMapCloseBtn" type="button" class="btn-primary" style="background: #657189;">Close</button>
           </div>
         </div>
 
@@ -96,7 +126,7 @@
             </div>
             <div class="menu-buttons" style="display: flex; flex-direction: column; gap: 10px; width: 200px; margin: 0 auto;">
               <button id="playAgainBtn" type="button" class="btn-primary"></button>
-              <button id="levelMapBtn" type="button" class="btn-primary" style="background: #7b5dc8;"></button>
+              <button id="levelMapBtn" type="button" class="btn-primary" style="background: #7b5dc8;">Level Map</button>
               <button id="showStickersBtn" type="button" class="btn-primary" style="background: #2e8b68;"></button>
               <button id="endLangBtn" type="button" class="btn-primary" style="background: #3478b9;"></button>
             </div>
@@ -135,8 +165,8 @@
 
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
-  <script src="./audio.js?v=111"></script>
-  <script src="./game.js?v=111"></script>
+  <script src="./audio.js?v=112"></script>
+  <script src="./game.js?v=112"></script>
   <script src="./bot.js"></script>
 </body>
 </html>
