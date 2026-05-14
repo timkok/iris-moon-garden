@@ -213,6 +213,7 @@ const i18n = {
         levelStatusSkipped: "已跳过（1 星）",
         levelStatusNew: "未挑战",
         chapterRecommend: "本章节推荐",
+        quickStartLine: "快速开始 · 18 关 · 全部解锁",
         modeCozy: "温馨模式",
         modeAdventure: "冒险模式",
         modeChallenge: "挑战模式",
@@ -333,6 +334,7 @@ const i18n = {
         levelStatusSkipped: "Skipped (1★)",
         levelStatusNew: "Not played yet",
         chapterRecommend: "Recommended in this chapter",
+        quickStartLine: "Quick start · 18 levels · all unlocked",
         modeCozy: "Cozy Mode",
         modeAdventure: "Adventure",
         modeChallenge: "Challenge",
@@ -1272,7 +1274,7 @@ function renderEndOverlayContent(stars = levelCompletionStars()) {
 
 function switchLanguage(lang) {
     currentLang = lang;
-    els.langBtn.textContent = lang === "zh" ? "English" : "中文";
+    els.langBtn.textContent = lang === "zh" ? "🌐 English" : "🌐 中文";
     els.langBtn.setAttribute("aria-label", lang === "zh" ? "Switch to English" : "切换到中文");
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
 
@@ -1294,7 +1296,7 @@ function switchLanguage(lang) {
     if (els.magicSkip) els.magicSkip.textContent = t.magicSkip;
     if (els.magicCozy) els.magicCozy.textContent = t.magicCozy;
     if (els.coopHelp) els.coopHelp.textContent = t.coopHelp;
-    if (els.selectLevelLabel) els.selectLevelLabel.textContent = `${t.selectLevel}:`;
+    if (els.selectLevelLabel) els.selectLevelLabel.textContent = tt("quickStartLine");
     document.title = t.title;
     if (els.completeOverlay && !els.completeOverlay.hidden) renderCompleteOverlayContent();
     if (els.endOverlay && !els.endOverlay.hidden) renderEndOverlayContent();
@@ -2797,7 +2799,58 @@ function renderChapters(container, { detailed = false } = {}) {
 }
 
 function populateLevelSelector() {
-  renderChapters(els.levelSelector, { detailed: false });
+  const sel = els.levelSelector;
+  if (!sel) return;
+  sel.innerHTML = "";
+  const save = readSave();
+  const rec = recommendedNextLevel();
+  sel.style.display = "grid";
+  sel.style.gap = "8px";
+  // Compact strip: one row per chapter with 6 small numbered tiles
+  chapterMeta.forEach((chapter, ci) => {
+    const row = document.createElement("div");
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "minmax(110px, 0.9fr) repeat(6, 1fr)";
+    row.style.gap = "6px";
+    row.style.alignItems = "center";
+
+    const label = document.createElement("div");
+    const diffKey = ci === 0 ? "chapter1Difficulty" : ci === 1 ? "chapter2Difficulty" : "chapter3Difficulty";
+    label.innerHTML = `<div style="font-weight:900;color:#243044;font-size:0.78rem;line-height:1.1">${tt(chapter.key)}</div><div style="font-size:0.7rem;color:${ci === 0 ? "#2e8b68" : ci === 1 ? "#d89b25" : "#7b5dc8"};font-weight:800;">${tt(diffKey)}</div>`;
+    label.style.textAlign = "left";
+    row.appendChild(label);
+
+    for (let idx = chapter.start; idx <= chapter.end; idx++) {
+      const lvl = levels[idx];
+      const num = idx + 1;
+      const stars = Number(save.bestStars?.[num] || 0);
+      const completed = !!save.completed?.[num];
+      const flower = !!(save.flowers?.[num] || localStorage.getItem("moonGardenFlower_" + idx));
+      const isRec = idx === rec;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.style.cursor = "pointer";
+      btn.style.background = completed ? "#f4f0ff" : "#fff";
+      btn.style.border = isRec ? "2px solid #ffd54a" : "1px solid #ddd1c0";
+      btn.style.color = "#243044";
+      btn.style.borderRadius = "8px";
+      btn.style.minHeight = "44px";
+      btn.style.padding = "2px";
+      btn.style.fontSize = "0.7rem";
+      btn.style.fontWeight = "800";
+      btn.style.boxShadow = isRec ? "0 0 0 2px rgba(255,213,74,0.35)" : "none";
+      btn.style.display = "grid";
+      btn.style.placeItems = "center";
+      btn.style.lineHeight = "1";
+      btn.title = lvl?.names?.[currentLang] || "";
+      const flowerStr = flower ? "🌸" : "";
+      const starsStr = stars > 0 ? `${"⭐".repeat(stars)}` : "";
+      btn.innerHTML = `<div>${num}</div><div style="font-size:0.6rem;color:#d89b25">${starsStr}${flowerStr}</div>`;
+      btn.addEventListener("click", () => startGame(idx));
+      row.appendChild(btn);
+    }
+    sel.appendChild(row);
+  });
 }
 
 function populateLevelMapGrid() {

@@ -13,7 +13,7 @@
       
       <!-- Language Switch (Always visible top-right) -->
       <div style="position: absolute; top: 15px; right: 15px; z-index: 100;">
-        <button id="langBtn" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0;">中文</button>
+        <button id="langBtn" type="button" class="lang-toggle-btn" aria-label="Switch language" title="Switch language">🌐 中文</button>
       </div>
 
       <!-- Topbar with HUD (hidden until a level starts) -->
@@ -64,11 +64,11 @@
               <button id="modeChallengeBtn" type="button" class="pill" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; color: #243044; box-shadow: none;">Challenge 🔒</button>
             </div>
 
-            <!-- Level Selector -->
+            <!-- Quick Select (compact strip) -->
             <div style="margin-top: 20px;">
-              <p id="selectLevelLabel" style="color: #657189; font-size: 0.9rem; margin-bottom: 10px;">Select Level:</p>
-              <div id="level-selector" style="display: grid; gap: 12px; max-width: 520px; margin: 0 auto;">
-                <!-- Buttons will be inserted by JS -->
+              <p id="selectLevelLabel" style="color: #657189; font-size: 0.85rem; margin-bottom: 8px;">Quick start · 18 levels · all unlocked</p>
+              <div id="level-selector" style="display: grid; gap: 8px; margin: 0 auto; max-width: 100%;">
+                <!-- Compact chapter strip will be inserted by JS -->
               </div>
             </div>
           </div>
@@ -165,8 +165,8 @@
 
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
-  <script src="./audio.js?v=112"></script>
-  <script src="./game.js?v=112"></script>
+  <script src="./audio.js?v=113"></script>
+  <script src="./game.js?v=113"></script>
   <script src="./bot.js"></script>
 </body>
 </html>
