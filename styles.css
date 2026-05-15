@@ -170,6 +170,55 @@ canvas {
   opacity: 0;
 }
 
+.level-intro {
+  position: absolute;
+  left: 50%;
+  top: 54px;
+  z-index: 40;
+  width: min(520px, calc(100% - 32px));
+  transform: translateX(-50%);
+  border: 1px solid rgba(216, 155, 37, 0.5);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: rgba(255, 250, 240, 0.96);
+  color: var(--ink);
+  text-align: center;
+  box-shadow: 0 14px 32px rgba(23, 35, 52, 0.18);
+  pointer-events: none;
+  animation: levelIntroIn 220ms ease-out;
+}
+
+.level-intro-kicker {
+  color: var(--violet);
+  font-weight: 900;
+  font-size: 0.78rem;
+  margin-bottom: 4px;
+}
+
+.level-intro h2 {
+  font-size: 1.2rem;
+  line-height: 1.15;
+  color: var(--leaf);
+}
+
+.level-intro p {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+@keyframes levelIntroIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
 .overlay {
   position: absolute;
   inset: 0;

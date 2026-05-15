@@ -28,6 +28,10 @@ const els = {
   magicSkip: document.querySelector("#magicSkipBtn"),
   magicCozy: document.querySelector("#magicCozyBtn"),
   toast: document.querySelector("#toast"),
+  levelIntro: document.querySelector("#level-intro"),
+  levelIntroKicker: document.querySelector("#levelIntroKicker"),
+  levelIntroTitle: document.querySelector("#levelIntroTitle"),
+  levelIntroGoal: document.querySelector("#levelIntroGoal"),
   help: document.querySelector("#helpBtn"),
   hud: document.querySelector("#hud"),
   progressBar: document.querySelector("#progressBar"),
@@ -99,6 +103,7 @@ let runTime = 0;
 let levelTime = 0;
 let sparkle = 0;
 let toastTimer = 0;
+let levelIntroTimer = 0;
 let lastGateHint = 0;
 let overlayAction = "start";
 
@@ -205,6 +210,8 @@ const i18n = {
         levelMapTitle: "关卡地图",
         levelMapHint: "你可以随时选择任何关卡。",
         recommendedNext: "推荐下一关：第 {n} 关",
+        levelIntroKicker: "{chapter} · {difficulty}",
+        levelIntroGoal: "目标：{goal}",
         recommendedBadge: "推荐",
         harderLabel: "更难",
         tryWhenReady: "准备好再挑战",
@@ -328,6 +335,8 @@ const i18n = {
         levelMapTitle: "Level Map",
         levelMapHint: "You can play any level anytime.",
         recommendedNext: "Recommended next: Level {n}",
+        levelIntroKicker: "{chapter} · {difficulty}",
+        levelIntroGoal: "Goal: {goal}",
         recommendedBadge: "Recommended",
         harderLabel: "Harder",
         tryWhenReady: "Try when ready",
@@ -1112,7 +1121,8 @@ function writeSave(patch) {
 }
 
 function challengeUnlocked() {
-  return readSave().unlockedLevel > 6;
+  const save = readSave();
+  return [1, 2, 3, 4, 5, 6].every((levelNumber) => save.completed?.[levelNumber]);
 }
 
 const difficultySettings = {
@@ -1232,6 +1242,31 @@ function levelCompletionStars() {
   return stars;
 }
 
+function showLevelIntro(index) {
+  const level = levels[index];
+  if (!level || !els.levelIntro) return;
+  const chapter = tt(chapterMeta[chapterIndexFor(index)]?.key || "chapter1");
+  if (els.levelIntroKicker) {
+    els.levelIntroKicker.textContent = tt("levelIntroKicker", {
+      chapter,
+      difficulty: levelDifficultyLabel(index),
+    });
+  }
+  if (els.levelIntroTitle) els.levelIntroTitle.textContent = level.names[currentLang];
+  if (els.levelIntroGoal) {
+    els.levelIntroGoal.textContent = tt("levelIntroGoal", {
+      goal: level.missions[currentLang],
+    });
+  }
+  levelIntroTimer = 2.8;
+  setHidden(els.levelIntro, false);
+}
+
+function hideLevelIntro() {
+  levelIntroTimer = 0;
+  setHidden(els.levelIntro, true);
+}
+
 function renderCompleteOverlayContent(stars = levelCompletionStars()) {
   const t = i18n[currentLang];
   if (els.completeTitle) els.completeTitle.textContent = t.completeTitle;
@@ -1330,6 +1365,7 @@ function switchLanguage(lang) {
     if (els.skipConfirmCopy) els.skipConfirmCopy.textContent = tt("skipConfirmCopy");
     if (els.skipConfirmYes) els.skipConfirmYes.textContent = tt("skipConfirmYes");
     if (els.skipConfirmNo) els.skipConfirmNo.textContent = tt("skipConfirmNo");
+    if (els.levelIntro && !els.levelIntro.hidden && levels[levelIndex]) showLevelIntro(levelIndex);
     if (els.levelMapOverlay && !els.levelMapOverlay.hidden) populateLevelMapGrid();
     updateContinueButton();
     updateModeUI();
@@ -1500,8 +1536,8 @@ function loadLevel(index) {
   updateSeedsDisplay();
   updateObjectiveText();
 
-  // Show level intro title overlay (briefly)
-  showToast(level.names[currentLang], 2.5);
+  showLevelIntro(index);
+  showToast(level.names[currentLang], 1.4);
 
   updateHud();
 }
@@ -1537,6 +1573,7 @@ function startGame(startIndex = 0) {
       els.progressBar.setAttribute("aria-hidden", "false");
       hideCompleteOverlay();
       hideEndOverlay();
+      hideLevelIntro();
 
       state.player.score = 0;
       state.player2.score = 0;
@@ -1572,6 +1609,8 @@ function update(dt) {
   state.bridgeTimer = Math.max(0, state.bridgeTimer - dt);
   updateObjectiveText();
   toastTimer = Math.max(0, toastTimer - dt);
+  levelIntroTimer = Math.max(0, levelIntroTimer - dt);
+  if (levelIntroTimer === 0 && els.levelIntro && !els.levelIntro.hidden) hideLevelIntro();
   hintTimer = Math.max(0, hintTimer - dt);
   if (hintTimer === 0 && showHintPath) {
     showHintPath = false;
@@ -2944,6 +2983,8 @@ function backToStartScreen() {
   paused = false;
   closePauseMenu();
   closeLevelMap();
+  closeSkipConfirm();
+  hideLevelIntro();
   hideCompleteOverlay();
   hideEndOverlay();
   setHidden(els.hud, true);
