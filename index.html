@@ -24,7 +24,8 @@
         </div>
         <div class="stats" aria-live="polite" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
           <span id="levelStat" class="pill">🌙 Level 1</span>
-          <span id="seedStat" class="pill">⭐ Seeds: — / —</span>
+          <span id="seedStat" class="pill">⭐ Seeds: 0 / 0</span>
+          <span id="moonDustStat" class="pill" title="Moon Dust" style="color:#7b5dc8;">✨ 0</span>
           <span id="timeStat" class="pill">⏱ Time 0:00</span>
           <span id="heartStat" class="pill">♡♡♡</span>
           <button id="muteBtn" class="pill" type="button" aria-label="Toggle sound" style="cursor: pointer; background: #fff; border: 1px solid #ddd1c0; font-size: 1.1rem; padding: 5px 10px;">🔇</button>
@@ -73,7 +74,7 @@
 
             <!-- Quick Select (compact strip) -->
             <div style="margin-top: 20px;">
-              <p id="selectLevelLabel" style="color: #657189; font-size: 0.85rem; margin-bottom: 8px;">Quick start · 18 levels · all unlocked</p>
+              <p id="selectLevelLabel" style="color: #657189; font-size: 0.85rem; margin-bottom: 8px;">Quick start · 18 levels · unlock as you play</p>
               <div id="level-selector" style="display: grid; gap: 8px; margin: 0 auto; max-width: 100%;">
                 <!-- Compact chapter strip will be inserted by JS -->
               </div>
@@ -187,8 +188,8 @@
 
   <div id="floating-text-container" style="position: absolute; pointer-events: none; inset: 0; overflow: hidden;"></div>
 
-  <script src="./audio.js?v=116"></script>
-  <script src="./game.js?v=116"></script>
+  <script src="./audio.js?v=117"></script>
+  <script src="./game.js?v=117"></script>
   <script src="./bot.js"></script>
 </body>
 </html>

@@ -14,6 +14,7 @@ const els = {
   overlayCopy: document.querySelector("#overlayCopy"),
   start: document.querySelector("#startBtn"),
   stickerBookStart: document.querySelector("#stickerBookStartBtn"),
+  moonDust: document.querySelector("#moonDustStat"),
   settingsLang: document.querySelector("#settingsLangBtn"),
   startStickerContainer: document.querySelector("#start-sticker-container"),
   restart: document.querySelector("#restartBtn"),
@@ -230,7 +231,11 @@ const i18n = {
         levelStatusSkipped: "已跳过（1 星）",
         levelStatusNew: "未挑战",
         chapterRecommend: "本章节推荐",
-        quickStartLine: "快速开始 · 18 关 · 全部解锁",
+        quickStartLine: "快速开始 · 18 关 · 通关解锁后续",
+        lockedHint: "完成前一关后解锁。温馨模式可随时选关。",
+        levelStatusLocked: "未解锁",
+        notEnoughDust: "月光尘还不够（需要 {n} ✨）。再玩一关收集更多吧！",
+        dustEarned: "+{n} ✨ 月光尘",
         modeCozy: "温馨模式",
         modeAdventure: "冒险模式",
         modeChallenge: "挑战模式",
@@ -355,7 +360,11 @@ const i18n = {
         levelStatusSkipped: "Skipped (1★)",
         levelStatusNew: "Not played yet",
         chapterRecommend: "Recommended in this chapter",
-        quickStartLine: "Quick start · 18 levels · all unlocked",
+        quickStartLine: "Quick start · 18 levels · unlock as you play",
+        lockedHint: "Complete the previous level to unlock. Cozy Mode lets you pick freely.",
+        levelStatusLocked: "Locked",
+        notEnoughDust: "Not enough Moon Dust (need {n} ✨). Finish a level to earn more!",
+        dustEarned: "+{n} ✨ Moon Dust",
         modeCozy: "Cozy Mode",
         modeAdventure: "Adventure",
         modeChallenge: "Challenge",
@@ -1105,6 +1114,8 @@ const defaultSave = {
   muted: true,
   cozyMode: true,
   difficulty: "cozy",
+  moonDust: 0,
+  totalSeedsCollected: 0,
 };
 
 function readSave() {
@@ -1419,8 +1430,9 @@ function updateDifficultyUI() {
 function updateContinueButton() {
   if (!els.continue) return;
   const save = readSave();
+  const started = !!save.started;
   const savedIndex = Math.max(0, Math.min(levels.length - 1, Number(save.lastPlayed || 0)));
-  if (save.started && savedIndex >= 0 && savedIndex < levels.length) {
+  if (started && savedIndex >= 0 && savedIndex < levels.length) {
     els.continue.hidden = false;
     els.continue.removeAttribute("aria-hidden");
     els.continue.classList.remove("hidden");
@@ -1430,6 +1442,18 @@ function updateContinueButton() {
     els.continue.setAttribute("aria-hidden", "true");
     els.continue.classList.add("hidden");
   }
+  // Simplify start screen for first-time players: only Start + Settings visible.
+  // Once any progress exists, also show Level Map and Sticker Book.
+  const setVis = (el, show) => {
+    if (!el) return;
+    el.hidden = !show;
+    el.classList.toggle("hidden", !show);
+    el.setAttribute("aria-hidden", String(!show));
+  };
+  setVis(els.openLevelMap, started);
+  setVis(els.stickerBookStart, started);
+  // Settings stays visible at all times if it exists.
+  setVis(els.settingsLang, true);
 }
 
 function updateSeedsDisplay() {
@@ -2051,7 +2075,16 @@ function recordLevelResult(stars) {
   }
   if (levelAssist.skip) skipped[levelNumber] = true;
   const unlockedLevel = Math.min(levels.length, Math.max(save.unlockedLevel || 1, levelIndex + 2));
-  writeSave({ unlockedLevel, bestStars, bestTimes, flowers, stickers, completed, skipped, lastPlayed: levelIndex, started: true, difficulty: difficultyMode, cozyMode: difficultyMode === "cozy" });
+  // Moon Dust reward: 1 dust for completing, +1 per star, +1 for flower, +1 for no-hit clear.
+  let dustGained = 1 + Math.max(0, stars);
+  if (state.flowers.some((f) => f.collected)) dustGained += 1;
+  if (livesLostThisLevel === 0) dustGained += 1;
+  // Skipped clears earn nothing — keeps the resource meaningful.
+  if (levelAssist.skip) dustGained = 0;
+  const moonDust = (save.moonDust || 0) + dustGained;
+  const totalSeedsCollected = (save.totalSeedsCollected || 0) + state.seeds.filter((s) => s.collected).length;
+  writeSave({ unlockedLevel, bestStars, bestTimes, flowers, stickers, completed, skipped, lastPlayed: levelIndex, started: true, moonDust, totalSeedsCollected, difficulty: difficultyMode, cozyMode: difficultyMode === "cozy" });
+  if (dustGained > 0) showToast(tt("dustEarned", { n: dustGained }), 1.8);
   localStorage.setItem("moonGardenProgress", String(unlockedLevel - 1));
   updateDifficultyUI();
   populateLevelSelector();
@@ -2072,6 +2105,7 @@ els.nextLevel.addEventListener("click", () => {
 
 function updateHud() {
   els.time.textContent = `⏱ ${i18n[currentLang].time} ${formatTime(runTime)}`;
+  if (els.moonDust) els.moonDust.textContent = `✨ ${readSave().moonDust || 0}`;
   els.hearts.textContent = "♡".repeat(hearts);
   els.progress.style.width = `${Math.round(progressPercent())}%`;
 }
@@ -2621,14 +2655,66 @@ els.help.addEventListener("click", () => {
     triggerPathHint(livesLostThisLevel >= 3 ? 6 : 3);
 });
 
-if (els.magicHelp) els.magicHelp.addEventListener("click", () => showMagicHelp(els.magicPanel.hidden));
-if (els.magicHeart1) els.magicHeart1.addEventListener("click", () => addHearts(1, "add1"));
-if (els.magicHeart3) els.magicHeart3.addEventListener("click", () => addHearts(3, "add3"));
+if (els.magicHelp) els.magicHelp.addEventListener("click", () => { refreshMagicHelpCosts(); showMagicHelp(els.magicPanel.hidden); });
+
+// --- Moon Dust resource system ---
+function moonDustCost(base) {
+  // Cozy reduces cost by 1 (min 0). Challenge keeps base.
+  if (difficultyMode === "cozy") return Math.max(0, base - 1);
+  return base;
+}
+function spendMoonDust(amount) {
+  const save = readSave();
+  const have = save.moonDust || 0;
+  if (have < amount) {
+    showToast(tt("notEnoughDust", { n: amount }), 1.8);
+    return false;
+  }
+  writeSave({ moonDust: have - amount });
+  updateHud();
+  refreshMagicHelpCosts();
+  return true;
+}
+function gainMoonDust(amount = 1) {
+  const save = readSave();
+  writeSave({ moonDust: (save.moonDust || 0) + amount });
+  updateHud();
+}
+function refreshMagicHelpCosts() {
+  const dust = readSave().moonDust || 0;
+  const tag = (b) => `  (${b}✨)`;
+  const set = (el, label, base) => {
+    if (!el) return;
+    el.textContent = `${label}${tag(moonDustCost(base))}`;
+    el.disabled = dust < moonDustCost(base);
+    el.style.opacity = el.disabled ? "0.55" : "1";
+  };
+  const t = i18n[currentLang];
+  set(els.magicHeart1, t.magicHeart1, 3);   // Rescue Heart
+  set(els.magicHeart3, t.magicHeart3, 6);   // Rescue +3 — Cozy-only, ~6 dust
+  set(els.magicSlow,   t.magicSlow,   2);
+  set(els.magicPath,   t.magicPath,   1);
+  set(els.magicCozy,   t.magicCozy,   1);
+  // Skip Level is free but only shown in Cozy mode
+  if (els.magicSkip) {
+    els.magicSkip.hidden = difficultyMode !== "cozy";
+    els.magicSkip.style.display = difficultyMode !== "cozy" ? "none" : "";
+  }
+  // +3 Hearts hidden outside Cozy
+  if (els.magicHeart3) {
+    els.magicHeart3.hidden = difficultyMode !== "cozy";
+    els.magicHeart3.style.display = difficultyMode !== "cozy" ? "none" : "";
+  }
+}
+
+if (els.magicHeart1) els.magicHeart1.addEventListener("click", () => { if (spendMoonDust(moonDustCost(3))) addHearts(1, "add1"); });
+if (els.magicHeart3) els.magicHeart3.addEventListener("click", () => { if (spendMoonDust(moonDustCost(6))) addHearts(3, "add3"); });
 if (els.magicSlow) els.magicSlow.addEventListener("click", () => {
+  if (!spendMoonDust(moonDustCost(2))) return;
   levelAssist.slow = true;
   showToast(i18n[currentLang].magicSlowToast, 1.7);
 });
-if (els.magicPath) els.magicPath.addEventListener("click", () => triggerPathHint(6));
+if (els.magicPath) els.magicPath.addEventListener("click", () => { if (spendMoonDust(moonDustCost(1))) triggerPathHint(6); });
 if (els.magicSkip) els.magicSkip.addEventListener("click", skipLevel);
 if (els.skipConfirmYes) els.skipConfirmYes.addEventListener("click", confirmSkipLevel);
 if (els.skipConfirmNo) els.skipConfirmNo.addEventListener("click", () => {
@@ -2637,6 +2723,7 @@ if (els.skipConfirmNo) els.skipConfirmNo.addEventListener("click", () => {
   if (els.pause) els.pause.textContent = i18n[currentLang].pauseBtn;
 });
 if (els.magicCozy) els.magicCozy.addEventListener("click", () => {
+  if (!spendMoonDust(moonDustCost(1))) return;
   levelAssist.bridgeExtend = true;
   state.bridgeTimer = Math.max(state.bridgeTimer, (levels[levelIndex]?.bridgeDuration || 8) + 5);
   if (state.switches.length) state.switches.forEach((sw) => { sw.activated = true; });
@@ -2795,6 +2882,8 @@ function renderChapters(container, { detailed = false } = {}) {
     grid.style.gridTemplateColumns = detailed ? "repeat(auto-fill, minmax(150px, 1fr))" : "repeat(6, minmax(0, 1fr))";
     grid.style.gap = "8px";
 
+    const unlockedLevel = save.unlockedLevel || 1;
+    const allowFree = difficultyMode === "cozy";
     for (let idx = chapter.start; idx <= chapter.end; idx++) {
       const lvl = levels[idx];
       if (!lvl) continue;
@@ -2804,13 +2893,16 @@ function renderChapters(container, { detailed = false } = {}) {
       const skipped = !!save.skipped?.[levelNumber];
       const flower = !!(save.flowers?.[levelNumber] || localStorage.getItem("moonGardenFlower_" + idx));
       const isRecommended = idx === recommendedIdx;
+      // Progressive unlock: only levels up to save.unlockedLevel are clickable.
+      // Cozy mode lets younger players still pick any level so they aren't stuck.
+      const locked = !allowFree && levelNumber > unlockedLevel;
 
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.style.cursor = "pointer";
-      btn.style.background = "#fff";
-      btn.style.border = isRecommended ? "2px solid #ffd54a" : "1px solid #ddd1c0";
-      btn.style.color = "#243044";
+      btn.style.cursor = locked ? "not-allowed" : "pointer";
+      btn.style.background = locked ? "#ece5d8" : "#fff";
+      btn.style.border = isRecommended && !locked ? "2px solid #ffd54a" : "1px solid #ddd1c0";
+      btn.style.color = locked ? "#a39a8a" : "#243044";
       btn.style.borderRadius = "10px";
       btn.style.padding = detailed ? "10px" : "6px 4px";
       btn.style.display = "grid";
@@ -2819,13 +2911,19 @@ function renderChapters(container, { detailed = false } = {}) {
       btn.style.fontWeight = "bold";
       btn.style.fontSize = detailed ? "0.82rem" : "0.72rem";
       btn.style.minHeight = detailed ? "94px" : "62px";
-      btn.style.boxShadow = isRecommended ? "0 0 0 3px rgba(255,213,74,0.35), 0 8px 18px rgba(255,213,74,0.18)" : "none";
-      btn.title = lvl.names[currentLang];
+      btn.style.boxShadow = isRecommended && !locked ? "0 0 0 3px rgba(255,213,74,0.35), 0 8px 18px rgba(255,213,74,0.18)" : "none";
+      btn.style.filter = locked ? "grayscale(0.7)" : "none";
+      btn.style.opacity = locked ? "0.7" : "1";
+      btn.title = locked ? tt("lockedHint") : lvl.names[currentLang];
+      btn.disabled = locked;
+      btn.setAttribute("aria-disabled", String(locked));
 
       const starsStr = `${"⭐".repeat(stars)}${"☆".repeat(3 - stars)}`;
       const flowerStr = flower ? "🌸" : "◇";
       let statusLine = "";
-      if (completed) {
+      if (locked) {
+        statusLine = tt("levelStatusLocked");
+      } else if (completed) {
         statusLine = skipped ? tt("levelStatusSkipped") : tt("levelStatusBest", { stars });
       } else {
         statusLine = tt("levelStatusNew");
@@ -2834,36 +2932,38 @@ function renderChapters(container, { detailed = false } = {}) {
       if (detailed) {
         const numEl = document.createElement("div");
         numEl.style.fontSize = "1rem";
-        numEl.style.color = "#7b5dc8";
-        numEl.textContent = `🌙 ${levelNumber}`;
+        numEl.style.color = locked ? "#a39a8a" : "#7b5dc8";
+        numEl.textContent = locked ? "🌑" : `🌙 ${levelNumber}`;
         btn.appendChild(numEl);
 
         const titleEl = document.createElement("div");
-        titleEl.textContent = lvl.names[currentLang].replace(/^.*?[:：]\s*/, "");
+        titleEl.textContent = locked ? `Level ${levelNumber}` : lvl.names[currentLang].replace(/^.*?[:：]\s*/, "");
         titleEl.style.fontSize = "0.78rem";
         titleEl.style.fontWeight = "700";
-        titleEl.style.color = "#243044";
+        titleEl.style.color = locked ? "#a39a8a" : "#243044";
         titleEl.style.textAlign = "center";
         btn.appendChild(titleEl);
 
-        const starsEl = document.createElement("div");
-        starsEl.textContent = starsStr;
-        starsEl.style.color = "#d89b25";
-        btn.appendChild(starsEl);
+        if (!locked) {
+          const starsEl = document.createElement("div");
+          starsEl.textContent = starsStr;
+          starsEl.style.color = "#d89b25";
+          btn.appendChild(starsEl);
 
-        const flowerEl = document.createElement("div");
-        flowerEl.textContent = `${flowerStr} ${flower ? tt("flowerFound") : tt("flowerMissing")}`;
-        flowerEl.style.fontSize = "0.72rem";
-        flowerEl.style.color = flower ? "#2e8b68" : "#999";
-        btn.appendChild(flowerEl);
+          const flowerEl = document.createElement("div");
+          flowerEl.textContent = `${flowerStr} ${flower ? tt("flowerFound") : tt("flowerMissing")}`;
+          flowerEl.style.fontSize = "0.72rem";
+          flowerEl.style.color = flower ? "#2e8b68" : "#999";
+          btn.appendChild(flowerEl);
+        }
 
         const statusEl = document.createElement("div");
         statusEl.textContent = statusLine;
         statusEl.style.fontSize = "0.72rem";
-        statusEl.style.color = "#657189";
+        statusEl.style.color = locked ? "#a39a8a" : "#657189";
         btn.appendChild(statusEl);
 
-        if (isRecommended) {
+        if (isRecommended && !locked) {
           const badge = document.createElement("div");
           badge.textContent = `⭐ ${tt("recommendedBadge")}`;
           badge.style.fontSize = "0.7rem";
@@ -2872,17 +2972,21 @@ function renderChapters(container, { detailed = false } = {}) {
           btn.appendChild(badge);
         }
       } else {
-        btn.innerHTML = `<strong>${levelNumber}</strong><span style="color:#d89b25;">${starsStr}</span><span>${flowerStr}</span>`;
-        if (isRecommended) {
-          const tag = document.createElement("span");
-          tag.textContent = "⭐";
-          tag.style.color = "#d89b25";
-          tag.style.fontSize = "0.7rem";
-          btn.appendChild(tag);
+        if (locked) {
+          btn.innerHTML = `<strong style="opacity:.85">🌑</strong><span style="font-size:0.62rem;color:#a39a8a">Lv ${levelNumber}</span>`;
+        } else {
+          btn.innerHTML = `<strong>${levelNumber}</strong><span style="color:#d89b25;">${starsStr}</span><span>${flowerStr}</span>`;
+          if (isRecommended) {
+            const tag = document.createElement("span");
+            tag.textContent = "⭐";
+            tag.style.color = "#d89b25";
+            tag.style.fontSize = "0.7rem";
+            btn.appendChild(tag);
+          }
         }
       }
 
-      btn.addEventListener("click", () => startGame(idx));
+      if (!locked) btn.addEventListener("click", () => startGame(idx));
       grid.appendChild(btn);
     }
     group.appendChild(grid);
@@ -2912,6 +3016,8 @@ function populateLevelSelector() {
     label.style.textAlign = "left";
     row.appendChild(label);
 
+    const unlockedLevel = save.unlockedLevel || 1;
+    const allowFree = difficultyMode === "cozy";
     for (let idx = chapter.start; idx <= chapter.end; idx++) {
       const lvl = levels[idx];
       const num = idx + 1;
@@ -2919,26 +3025,34 @@ function populateLevelSelector() {
       const completed = !!save.completed?.[num];
       const flower = !!(save.flowers?.[num] || localStorage.getItem("moonGardenFlower_" + idx));
       const isRec = idx === rec;
+      const locked = !allowFree && num > unlockedLevel;
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.style.cursor = "pointer";
-      btn.style.background = completed ? "#f4f0ff" : "#fff";
-      btn.style.border = isRec ? "2px solid #ffd54a" : "1px solid #ddd1c0";
-      btn.style.color = "#243044";
+      btn.style.cursor = locked ? "not-allowed" : "pointer";
+      btn.style.background = locked ? "#ece5d8" : completed ? "#f4f0ff" : "#fff";
+      btn.style.border = isRec && !locked ? "2px solid #ffd54a" : "1px solid #ddd1c0";
+      btn.style.color = locked ? "#a39a8a" : "#243044";
       btn.style.borderRadius = "8px";
       btn.style.minHeight = "44px";
       btn.style.padding = "2px";
       btn.style.fontSize = "0.7rem";
       btn.style.fontWeight = "800";
-      btn.style.boxShadow = isRec ? "0 0 0 2px rgba(255,213,74,0.35)" : "none";
+      btn.style.boxShadow = isRec && !locked ? "0 0 0 2px rgba(255,213,74,0.35)" : "none";
       btn.style.display = "grid";
       btn.style.placeItems = "center";
       btn.style.lineHeight = "1";
-      btn.title = lvl?.names?.[currentLang] || "";
-      const flowerStr = flower ? "🌸" : "";
-      const starsStr = stars > 0 ? `${"⭐".repeat(stars)}` : "";
-      btn.innerHTML = `<div>${num}</div><div style="font-size:0.6rem;color:#d89b25">${starsStr}${flowerStr}</div>`;
-      btn.addEventListener("click", () => startGame(idx));
+      btn.style.opacity = locked ? "0.65" : "1";
+      btn.title = locked ? tt("lockedHint") : (lvl?.names?.[currentLang] || "");
+      btn.disabled = locked;
+      btn.setAttribute("aria-disabled", String(locked));
+      if (locked) {
+        btn.innerHTML = `<div style="font-size:0.95rem">🌑</div><div style="font-size:0.55rem">Lv ${num}</div>`;
+      } else {
+        const flowerStr = flower ? "🌸" : "";
+        const starsStr = stars > 0 ? `${"⭐".repeat(stars)}` : "";
+        btn.innerHTML = `<div>${num}</div><div style="font-size:0.6rem;color:#d89b25">${starsStr}${flowerStr}</div>`;
+        btn.addEventListener("click", () => startGame(idx));
+      }
       row.appendChild(btn);
     }
     sel.appendChild(row);
